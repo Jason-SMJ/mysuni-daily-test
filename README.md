@@ -70,6 +70,8 @@ career_qa_v0.3/
 
 ## Playwright 및 LLM 사용 정책/로직
 
+별도 문서: `docs/architecture.md`
+
 ### 점검항목 유형별 서비스 흐름도
 
 ```mermaid
