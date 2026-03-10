@@ -181,6 +181,8 @@ CLI 규칙:
 
 ## 업로드/배포 운영 가이드
 
+브랜치/커밋/PR 규칙: `docs/contributing.md`
+
 ### 1) GitHub 업로드(최초 1회)
 
 ```bash
