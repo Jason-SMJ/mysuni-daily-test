@@ -1,0 +1,71 @@
+# MySuni 자동 테스트 설정 파일 (확장 버전)
+
+
+azure:
+  openai:
+    # endpoint: "https://ai-core-openai-llm.openai.azure.com/"
+    endpoint: "https://mysuni-openai-swedencentral.openai.azure.com/"
+    api_key: ""                                     # .env 파일의 AZURE_OPENAI_KEY 사용 권장
+    api_version: "2024-05-01-preview"
+    vision_deployment: "mysuni-openai-gpt4o"        # 스크린샷 판별 모델
+    # embedding_deployment: "text-embedding-3-large"
+
+slack:
+  bot_token: ""               # .env 파일의 SLACK_BOT_TOKEN 사용 권장
+  dm_user_id: ""              # Slack 사용자 ID (예: U12345678)
+  dm_email: "myapplesmj@gmail.com"    # Slack 이메일 주소 (dm_user_id가 없을 때 사용)
+  retry_attempts: 3
+  retry_delay: 2
+
+mysuni:
+  base_url: "http://mysuni.sk.com/"
+
+browser:
+  headless: false  # true로 설정하면 브라우저 UI 없이 실행
+  viewport:
+    width: 1280
+    height: 1024
+  timeout: 30000
+  download_dir: "downloads"  # 다운로드 파일 저장 디렉토리
+
+test:
+  # 테스트할 페이지 URL 매핑
+  pages:
+    career_profile: "/suni-main/career?page=/main"
+    career_recommend: "/suni-main/career?page=/career/recommend"
+    career_mypick: "/suni-main/career?page=/career/my-pick"
+    career_coach_1on1: "/suni-main/career?page=/coach/one-on-one"
+    career_coach_myprogress: "/suni-main/career?page=/coach/progress-review"
+    # career_team_management: "/suni-main/career?page=/career/team/management"
+    career_mti_internalview: "/suni-main/career?page=/mti/internal"
+    # career_mti_globaltrend: "/suni-main/career?page=/career/mti/global-trend" 
+    career_mti_goalsetting: "/suni-main/career?page=/mti/goal-setting/goal-state"
+  # 테스트 시나리오 설정
+  scenarios:
+    - name: "career_profile"
+      enabled: true
+      description: "Pilot 1단계: Career Profile 체크리스트"
+    - name: "career_recommend"
+      enabled: false
+      description: "Career Recommend"
+      skip_reason: "Pilot 1단계 범위 제외"
+    - name: "career_mypick"
+      enabled: false
+      description: "Career My Pick"
+      skip_reason: "Pilot 1단계 범위 제외"
+    - name: "career_1on1"
+      enabled: false
+      description: "Career Coach 1on1"
+      skip_reason: "Pilot 1단계 범위 제외"
+    - name: "career_myprogress"
+      enabled: false
+      description: "Career Coach My Progress"
+      skip_reason: "Pilot 1단계 범위 제외"
+
+# 민감한 정보는 .env 파일에 저장하세요:
+# AZURE_OPENAI_KEY=your_key_here
+# SLACK_BOT_TOKEN=xoxb-your-token
+# SLACK_DM_USER_ID=U12345678
+# SLACK_DM_EMAIL=user@company.com
+# MYSUNI_ID=your_id
+# MYSUNI_PWD=your_password

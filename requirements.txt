@@ -1,0 +1,5 @@
+python-dotenv
+playwright
+pyyaml
+openai
+slack_sdk
