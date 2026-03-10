@@ -1,48 +1,125 @@
 # career_qa_v0.3
 
-MySuni Career 화면을 Playwright로 탐색하고, Azure OpenAI Vision으로 스크린샷을 판별한 뒤 Slack DM으로 결과를 알리는 자동 점검 프로젝트입니다.
+MySuni Career 서비스 화면을 자동 점검하는 QA 애플리케이션입니다.  
+Playwright로 실제 화면을 조작하고, 캡처 이미지를 LLM(Vision)으로 판정하여 결과를 Slack으로 알립니다.
 
-## 기술 스택
+## 애플리케이션 목적 및 주요 기능
 
-- Python (asyncio 기반)
-- Playwright (브라우저 자동화)
-- Azure OpenAI Vision (`openai` SDK)
-- Slack SDK (`slack_sdk`)
-- YAML + `.env` 기반 설정 관리
+### 목적
+- 사람이 매일 수동으로 확인하던 Career 화면 점검을 자동화해 점검 시간과 누락 리스크를 줄입니다.
+- UI 깨짐, 모달 미노출, 로딩 비정상 등의 화면 이슈를 조기에 탐지합니다.
+- 점검 로그/이미지/판정 근거를 남겨 재현성과 추적성을 확보합니다.
 
-## 주요 기능
+### 주요 기능
+- MySuni 로그인 후 시나리오별 페이지 이동 자동화
+- 체크리스트 기반 항목 점검 (`tests/specs/daily_check_spec.py`)
+- 요소 클릭/팝업 진입/전환 감지 (Playwright)
+- 스크린샷 캡처 및 기준 이미지 비교 (optional)
+- LLM 판정 (`정상`, `비정상`, `판단불가`) 및 상세 응답 기록
+- 실패 시 Slack DM 텍스트/파일 알림
+- 시나리오 단위 및 항목 단위 실행 지원 (`--scenario`, `--item`)
 
-- MySuni 로그인 후 Career 관련 페이지 자동 이동
-- 페이지/팝업 스크린샷 캡처
-- LLM 기반 정상/비정상 판정 (`정상`, `비정상`, `판단불가`)
-- 비정상 시 Slack DM 텍스트 + 스크린샷 파일 알림
-- 시나리오별 ON/OFF 실행 (`config/config.yaml`)
-
-## 프로젝트 구조
+## 프로젝트 구조와 파일 역할
 
 ```text
 career_qa_v0.3/
-├── main.py                      # 엔트리포인트
+├── main.py
 ├── requirements.txt
 ├── config/
-│   ├── config.yaml              # 테스트/브라우저/페이지/시나리오 설정
-│   └── settings.py              # YAML + .env 로더
+│   ├── config.yaml
+│   └── settings.py
 ├── core/
-│   ├── browser.py               # BrowserManager, MySuniPage
-│   └── screenshot.py            # 스크린샷 캡처/인코딩
+│   ├── browser.py
+│   └── screenshot.py
 ├── integrations/
-│   ├── azure_openai.py          # Vision 판정 클라이언트
-│   └── slack_notifier.py        # Slack DM 전송
+│   ├── azure_openai.py
+│   └── slack_notifier.py
 ├── tests/
-│   ├── base_test.py             # 공통 베이스
-│   ├── career_*_test.py         # 페이지별 시나리오
+│   ├── base_test.py
+│   ├── career_profile_test.py
+│   ├── career_recommend_test.py
+│   ├── career_mypick_test.py
+│   ├── career_1on1_test.py
+│   ├── career_myprogress_test.py
 │   └── specs/
-│       ├── daily_check_spec.py  # 체크리스트/선택자 정의
+│       ├── daily_check_spec.py
 │       └── PRECHECK_SPEC.md
-├── screenshots/                 # 실행 결과 이미지
-├── downloads/                   # 다운로드 파일
-└── baselines/                   # 기준 이미지(샘플)
+├── baselines/
+│   └── <service>/
+├── screenshots/
+│   ├── <service>/
+│   └── debug/
+└── downloads/
 ```
+
+### 폴더/파일별 역할
+- `main.py`: 실행 엔트리포인트. 설정 로드, 로그인, 시나리오 실행, 결과 요약/Slack 알림 담당
+- `config/config.yaml`: 브라우저/시나리오 활성화/재시도/경로 등 운영 설정
+- `config/settings.py`: `config.yaml` + `.env` 값을 로딩/병합
+- `core/browser.py`: Playwright 브라우저/페이지 생성, 로그인, 페이지 이동
+- `core/screenshot.py`: 전체/요소 캡처, base64 인코딩. 하위 폴더 자동 생성 포함
+- `integrations/azure_openai.py`: Vision 모델 호출 및 판정 결과 파싱
+- `integrations/slack_notifier.py`: 실패 알림 및 첨부파일 전송
+- `tests/base_test.py`: 공통 캡처/LLM 검증/실패 알림 베이스 클래스
+- `tests/career_profile_test.py`: 체크리스트 기반 하이브리드 검증 핵심 로직
+- `tests/career_*_test.py`: 페이지 단위 시나리오 실행 클래스
+- `tests/specs/daily_check_spec.py`: 점검 항목 정의(기대결과, 선택자, reference_image 등)
+- `baselines/<service>/`: 기준 이미지 저장소
+- `screenshots/<service>/`: 실행 결과 이미지 저장소
+- `screenshots/debug/`: 팝업 전환/탐지 디버그 JSON
+
+## Playwright 및 LLM 사용 정책/로직
+
+### Playwright 요소 식별 정책
+
+`career_profile` 기준 클릭 우선순위는 아래와 같습니다.
+
+1. `data-testid` 기반 탐색
+2. 텍스트(semantic candidates) 기반 탐색
+3. 구조 선택자(structural selectors) 기반 탐색
+4. JS fallback (`document.querySelectorAll`) 기반 클릭
+
+정책 의도:
+- 가장 안정적인 식별자(`data-testid`)를 최우선 사용
+- UI 문구 변경 가능성을 감안해 semantic/structural을 보조로 사용
+- 프레임(main + iframe) 컨텍스트를 순회하여 cross-frame 요소까지 탐지
+
+### 팝업/전환 감지 로직
+
+- 팝업 감지 기준: `BaseModal_main__` 클래스를 포함하는 visible 모달
+- 클릭 후 전환 체크: `popup` / `navigation` / `new-page`를 구분
+- 이전 테스트의 잔존 모달 오염 방지: 팝업 액션 전/후 `close_all_popups` 수행
+- 복수 모달 동시 존재 시, 제목 히트 + 내용 점수(fields + text length)로 타깃 모달 선택
+
+### 스크린샷 캡처 정책
+
+- 저장 경로: `screenshots/<service>/...`
+- `career_profile`는 `reference_image`가 있으면 동일 파일명으로 저장
+  - 예: `reference_image="career_profile/09_project_popup.png"`
+  - 실행 이미지: `screenshots/career_profile/09_project_popup.png`
+- 팝업 캡처 우선순위
+1. 타깃 모달 요소 캡처
+2. iframe 전체영역 캡처
+3. full-page 캡처 폴백
+
+### LLM 판정 정책
+
+- 입력: 실행 캡처 이미지 + (있으면) 기준 이미지
+- 프롬프트 구성 요소
+  - 점검 항목명/상세/기대 결과
+  - 사전 동작 성공/실패
+  - 전환 타입(popup/navigation 등)
+  - 정상/비정상 추가 판정 기준
+- 판정값
+  - `정상`: 기대 결과가 화면에서 확인됨
+  - `비정상`: 기대 결과 불충족, 깨짐/오류/로딩 이상
+  - `판단불가`: 근거 부족 또는 모호
+
+### 기준 이미지 운영 규칙
+
+- 기준 이미지는 `baselines/<service>/`에 저장
+- 파일명은 실행 캡처 파일명과 동일하게 유지 권장
+- 기준 이미지가 없으면 실행 이미지만으로 판정 (테스트는 계속 진행)
 
 ## 사전 준비
 
@@ -61,7 +138,7 @@ playwright install chromium
 
 ## 환경변수 설정
 
-프로젝트 루트에 `.env` 파일을 만들고 아래 값을 채웁니다.
+프로젝트 루트 `.env` 예시:
 
 ```env
 AZURE_OPENAI_KEY=your_azure_openai_key
@@ -76,82 +153,76 @@ MYSUNI_PWD=your_mysuni_password
 # HTTP_PROXY=http://proxy.example.com:8080
 ```
 
-## 설정 파일 (`config/config.yaml`)
-
-- `azure.openai`: endpoint / api_version / deployment
-- `slack`: 토큰, DM 대상, 재시도 정책
-- `mysuni`: base URL
-- `browser`: headless, viewport, timeout, download_dir
-- `test.pages`: 페이지 경로 맵
-- `test.scenarios`: 실행 시나리오 ON/OFF
-
-예시:
-
-```yaml
-test:
-  scenarios:
-    - name: "career_profile"
-      enabled: true
-    - name: "career_recommend"
-      enabled: false
-```
-
 ## 실행 방법
+
+전체 실행:
 
 ```bash
 python main.py
 ```
 
-특정 시나리오만 실행:
+시나리오 단위 실행:
 
 ```bash
 python main.py --scenario career_profile
 ```
 
-`career_profile`의 특정 체크리스트 항목(1-based)만 실행:
+체크리스트 항목 단위 실행 (`career_profile` 전용, 1-based):
 
 ```bash
 python main.py --scenario career_profile --item 10
 ```
 
-CLI 옵션 규칙:
+CLI 규칙:
+- `--scenario`: 해당 시나리오만 실행 (YAML 타 시나리오 설정 무시)
+- `--item`: `career_profile`에서만 유효
 
-- `--scenario`: 해당 시나리오만 실행 (YAML의 다른 시나리오 설정은 무시)
-- `--item`: `career_profile`에서만 사용 가능
-- `--item` 인덱스는 1-based이며, 범위를 벗어나면 실패 처리
+## 업로드/배포 운영 가이드
 
-실행 시 순서:
+### 1) GitHub 업로드(최초 1회)
 
-1. 설정 로드
-2. MySuni 로그인
-3. 활성화된 시나리오 실행
-4. 스크린샷 + LLM 판정
-5. 결과 요약 출력 및 Slack 알림
+```bash
+git init
+git branch -M main
+git add .
+git commit -m "Initial commit"
+git remote add origin <repo-url>
+git push -u origin main
+```
 
-## 현재 기본 시나리오
+### 2) 일상 운영 배포(코드 반영)
 
-- 기본 활성화: `career_profile`
-- 기본 비활성화:
-- `career_recommend`
-- `career_mypick`
-- `career_1on1`
-- `career_myprogress`
+```bash
+git status
+git add .
+git commit -m "chore: update scenario logic"
+git push
+```
 
-## 결과 산출물
+### 3) 서버/배치 실행 가이드(권장)
 
-- 스크린샷: `screenshots/`
-- 디버그 덤프(팝업 분석): `screenshots/debug/` (Career Profile 팝업 점검 시)
-- 다운로드 파일: `downloads/`
+1. 코드 Pull
+2. 가상환경 활성화
+3. `pip install -r requirements.txt`
+4. `playwright install chromium` (최초/업데이트 시)
+5. `.env` 주입
+6. `python main.py --scenario ...` 실행
+
+### 4) 운영 체크리스트
+
+- `.env`, 토큰, 계정정보는 절대 커밋 금지
+- 기준 이미지 변경 시 PR에 변경 사유 기록
+- 실패 케이스는 `screenshots/debug/` JSON과 함께 분석
+- 회사망 프록시/인증서 환경이면 네트워크 설정 선확인
 
 ## Slack 권한 권장값
 
 - `chat:write`
 - `files:write`
-- `users:read.email` (이메일 조회 사용 시)
-- `conversations:write` 또는 `im:write` (워크스페이스 정책에 따라)
+- `users:read.email` (이메일 대상 조회 시)
+- `conversations:write` 또는 `im:write`
 
-## 참고 / 주의
+## 참고
 
-- 실제 계정, 토큰, 비밀번호는 `config.yaml`이 아닌 `.env` 사용 권장
-- 기준 이미지 비교를 쓰려면 체크리스트의 `reference_image` 경로에 맞춰 파일을 준비해야 합니다
-- 회사망 환경에서는 프록시/인증서 설정이 필요할 수 있습니다
+- 기본 활성 시나리오: `career_profile`
+- 비활성 시나리오: `career_recommend`, `career_mypick`, `career_1on1`, `career_myprogress`
