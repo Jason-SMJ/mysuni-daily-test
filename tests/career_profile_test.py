@@ -818,7 +818,24 @@ class CareerProfileTestScenario(BaseTest):
                     f"팝업추적: {self._last_popup_context or 'N/A'}\n"
                     f"캡처오류: {self._last_capture_error or 'N/A'}"
                 )
-                self.notify_failure(self.SCENARIO_NAME, detail, screenshot_path)
+                self.record_item_result(
+                    scenario_key=item.service,
+                    item_id=idx,
+                    item_name=item.check_item,
+                    action_type=item.action_type,
+                    result="판단불가",
+                    llm_response=detail,
+                    screenshot_path=screenshot_path,
+                )
+                self.notify_failure_item(
+                    scenario_key=item.service,
+                    item_id=idx,
+                    item_name=item.check_item,
+                    action_type=item.action_type,
+                    result="판단불가",
+                    llm_response=detail,
+                    screenshot_path=screenshot_path,
+                )
                 print(
                     f"❌ 팝업 캡처 실패: {item.check_item} "
                     f"(click={self._last_click_trace}, transition={self._last_action_outcome.transition_type}, "
@@ -836,6 +853,16 @@ class CareerProfileTestScenario(BaseTest):
             reference_image_path=self._resolve_reference_image(item),
         )
 
+        self.record_item_result(
+            scenario_key=item.service,
+            item_id=idx,
+            item_name=item.check_item,
+            action_type=item.action_type,
+            result=result,
+            llm_response=llm_response,
+            screenshot_path=screenshot_path,
+        )
+
         if result != "정상":
             detail = (
                 f"체크항목: {item.check_item}\n"
@@ -845,7 +872,15 @@ class CareerProfileTestScenario(BaseTest):
                 f"팝업추적: {self._last_popup_context or 'N/A'}\n"
                 f"LLM: {llm_response}"
             )
-            self.notify_failure(self.SCENARIO_NAME, detail, screenshot_path)
+            self.notify_failure_item(
+                scenario_key=item.service,
+                item_id=idx,
+                item_name=item.check_item,
+                action_type=item.action_type,
+                result=result,
+                llm_response=detail,
+                screenshot_path=screenshot_path,
+            )
             return False, llm_response
 
         return True, llm_response
@@ -896,7 +931,7 @@ class CareerProfileTestScenario(BaseTest):
                 print(f"❌ {self.SCENARIO_NAME} 실패 항목: {', '.join(failed_items)}")
                 return False
 
-            print(f"✅ {self.SCENARIO_NAME} 완료 - {len(self.CHECKLIST)}개 항목 통과")
+            print(f"✅ {self.SCENARIO_NAME} 완료 - {len(indexed_items)}개 항목 통과")
             return True
 
         except Exception as e:

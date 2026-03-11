@@ -72,6 +72,8 @@ career_qa_v0.3/
 
 별도 문서: `docs/architecture.md`
 
+품질 평가 가이드: `docs/quality-evaluation.md`
+
 ### Playwright 요소 식별 정책
 
 `career_profile` 기준 클릭 우선순위는 아래와 같습니다.

@@ -38,8 +38,26 @@ class CareerMyProgressTestScenario(BaseTest):
                 "strict",
                 reference_image_path=self._resolve_reference_image(),
             )
-            if result == "비정상":
-                self.notify_failure(self.SCENARIO_NAME, llm_response, screenshot_path)
+            self.record_item_result(
+                scenario_key=self.SERVICE_KEY,
+                item_id=1,
+                item_name="Career Coach My Progress 메인 화면 점검",
+                action_type="navigate",
+                result=result,
+                llm_response=llm_response,
+                screenshot_path=screenshot_path,
+            )
+
+            if result != "정상":
+                self.notify_failure_item(
+                    scenario_key=self.SERVICE_KEY,
+                    item_id=1,
+                    item_name="Career Coach My Progress 메인 화면 점검",
+                    action_type="navigate",
+                    result=result,
+                    llm_response=llm_response,
+                    screenshot_path=screenshot_path,
+                )
                 return False
             
             print(f"✅ {self.SCENARIO_NAME} 완료 - {result}")

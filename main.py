@@ -5,6 +5,7 @@ Pilot 1단계: Career Profile 체크리스트 검증 우선 실행
 
 import asyncio
 import argparse
+from datetime import datetime
 from dataclasses import dataclass
 from typing import Callable
 from config.settings import Settings
@@ -169,6 +170,24 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         print("="*60)
         
         results = []
+        total_abnormal_items = 0
+        total_indeterminate_items = 0
+        failure_items: list[dict[str, str | int]] = []
+        service_result_map: dict[str, dict[str, int]] = {
+            "career_profile": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+            "career_recommend": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+            "career_mypick": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+            "career_1on1": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+            "career_myprogress": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+        }
+        service_label_map = {
+            "career_profile": "Career Profile",
+            "career_recommend": "Career Recommend",
+            "career_mypick": "Career My Pick",
+            "career_1on1": "Career Coach 1on1",
+            "career_myprogress": "Career Coach My Progress",
+        }
+
         for i, plan in enumerate(scenario_plans, 1):
             print(f"\n[{i}/{len(scenario_plans)}] {plan.name}")
             print("-" * 60)
@@ -177,9 +196,53 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
             if not should_run:
                 print(f"⏭️ 스킵 - 사유: {plan.skip_reason}")
                 results.append((plan.name, "SKIP", plan.skip_reason))
+                service_result_map.setdefault(
+                    plan.key,
+                    {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+                )["skip"] += 1
             else:
                 scenario = plan.factory()
+                before_failure_count = len(failure_items)
                 passed = await scenario.run()
+
+                scenario_abnormal = 0
+                scenario_indeterminate = 0
+                scenario_success = 0
+                if hasattr(scenario, "get_result_counts"):
+                    counts = scenario.get_result_counts()
+                    scenario_success = int(counts.get("정상", 0))
+                    scenario_abnormal = int(counts.get("비정상", 0))
+                    scenario_indeterminate = int(counts.get("판단불가", 0))
+                    total_abnormal_items += scenario_abnormal
+                    total_indeterminate_items += scenario_indeterminate
+
+                service_metrics = service_result_map.setdefault(
+                    plan.key,
+                    {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+                )
+                service_metrics["success"] += scenario_success
+                service_metrics["failure"] += scenario_abnormal
+                service_metrics["indeterminate"] += scenario_indeterminate
+
+                if hasattr(scenario, "get_failure_items"):
+                    failure_items.extend(scenario.get_failure_items())
+
+                # 항목 판정 전에 시나리오가 실패한 경우, 최종 요약에 원인을 남긴다.
+                if not passed and len(failure_items) == before_failure_count:
+                    failure_items.append(
+                        {
+                            "scenario": plan.key,
+                            "item_id": 0,
+                            "item_name": "시나리오 실행 실패",
+                            "action_type": "none",
+                            "result": "비정상",
+                            "summary": "페이지 이동/예외로 항목 판정 전에 종료됨",
+                        }
+                    )
+                    if scenario_abnormal == 0 and scenario_indeterminate == 0:
+                        total_abnormal_items += 1
+                        service_metrics["failure"] += 1
+
                 results.append((plan.name, "PASS" if passed else "FAIL", ""))
             
             # 시나리오 간 대기
@@ -214,26 +277,76 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         print("-" * 60)
         print(
             f"총 {len(results)}개 시나리오 중 성공: {passed_count}, "
-            f"실패: {failed_count}, 스킵: {skipped_count}"
+            f"실패: {failed_count}, 스킵: {skipped_count}, "
+            f"비정상 항목: {total_abnormal_items}, 판단불가 항목: {total_indeterminate_items}"
         )
         print("="*60)
+
+        executed_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        total_success_items = sum(v["success"] for v in service_result_map.values())
+        total_failure_items = sum(v["failure"] for v in service_result_map.values())
+        total_indeterminate_items_from_services = sum(v["indeterminate"] for v in service_result_map.values())
+        total_skips_from_services = sum(v["skip"] for v in service_result_map.values())
+
+        summary_lines = [
+            "[mySUNI 일일점검 결과 Summary]",
+            f"• *실행 일시*: {executed_at}",
+            f"• *대상 시나리오*: {len(scenario_plans)}개",
+            "• *점검 결과*",
+            (
+                f"   - 전체 : 성공 {total_success_items} / 실패 {total_failure_items} / "
+                f"판단불가 {total_indeterminate_items_from_services} / 스킵 {total_skips_from_services}"
+            ),
+        ]
+
+        for plan in scenario_plans:
+            metrics = service_result_map.get(
+                plan.key,
+                {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+            )
+            summary_lines.append(
+                (
+                    f"   - {service_label_map.get(plan.key, plan.name)} : "
+                    f"성공 {metrics['success']} / 실패 {metrics['failure']} / "
+                    f"판단불가 {metrics['indeterminate']} / 스킵 {metrics['skip']}"
+                )
+            )
+
+        summary_lines.extend(["", "• *실패 항목 목록*:"])
+
+        if failure_items:
+            for idx, item in enumerate(failure_items, start=1):
+                item_id = item.get("item_id", 0)
+                item_label = f"item {item_id}" if int(item_id) > 0 else "item N/A"
+                summary_lines.append(
+                    f"{idx}. {item.get('scenario')} / {item_label} / {item.get('action_type')} / {item.get('result')}"
+                )
+                summary_lines.append(f"   - 항목명: {item.get('item_name')}")
+                summary_lines.append(f"   - 요약: {item.get('summary')}")
+                summary_lines.append(f"   - 스크린샷: {item.get('screenshot', 'N/A')}")
+                summary_lines.append("")
+        else:
+            summary_lines.append("- 없음")
+            summary_lines.append("")
+
+        summary_lines.extend(
+            [
+                "• *조치 우선순위*:",
+                "- 1순위: 비정상 항목 확인",
+                "- 2순위: 판단불가 항목 스크린샷 재검토",
+            ]
+        )
+
+        slack_summary_message = "\n".join(summary_lines)
         
         # 8. Slack 최종 알림
         if failed_count == 0:
             print("\n🎉 모든 테스트 통과!")
-            slack_notifier.send_text(
-                f"🎉 MySuni 일일점검 자동 검증 완료\n"
-                f"✅ 성공: {passed_count}개\n"
-                f"⏭️ 스킵: {skipped_count}개"
-            )
+            slack_notifier.send_text(slack_summary_message)
         else:
             print(f"\n⚠️ {failed_count}개 테스트 실패")
-            slack_notifier.send_text(
-                f"⚠️ MySuni 일일점검 자동 검증 완료\n"
-                f"✅ 성공: {passed_count}개\n"
-                f"❌ 실패: {failed_count}개\n"
-                f"⏭️ 스킵: {skipped_count}개"
-            )
+            slack_notifier.send_text(slack_summary_message)
         
         # 종료 전 대기
         await page.wait_for_timeout(3000)

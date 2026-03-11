@@ -177,3 +177,40 @@ class SlackNotifier:
         # 스크린샷 전송
         file_message = f"[{scenario_name}] 비정상 화면 캡처\nLLM 응답: {llm_response}"
         return self.send_file(file_message, screenshot_path)
+
+    def send_failure_item_notification(
+        self,
+        *,
+        scenario_key: str,
+        item_id: int,
+        item_name: str,
+        action_type: str,
+        result: str,
+        summary: str,
+        llm_response: str,
+        screenshot_path: Path,
+    ) -> bool:
+        """항목 단위 실패/판단불가 알림을 요청 포맷에 맞춰 전송합니다."""
+        service_name_map = {
+            "career_profile": "Career Profile",
+            "career_recommend": "Career Recommend",
+            "career_mypick": "Career My Pick",
+            "career_1on1": "Career Coach 1on1",
+            "career_myprogress": "Career Coach My Progress",
+        }
+        service_name = service_name_map.get(scenario_key, scenario_key)
+        detection_label = "판정불가" if result in {"판단불가", "판정불가"} else "실패"
+
+        # 파일 업로드의 initial_comment에 본문을 담아 단일 메시지로 전송한다.
+        single_message = (
+            f"[{service_name} 자동점검 결과] {detection_label} 항목 감지\n\n"
+            f"• *시나리오*: {scenario_key}\n"
+            f"• *항목 ID*: {item_id}\n"
+            f"• *항목명*: {item_name}\n"
+            f"• *Action Type*: {action_type}\n"
+            f"• *판정 결과*: {result}\n\n"
+            f"• *요약 근거*:\n"
+            f"   - {summary}"
+        )
+
+        return self.send_file(single_message, screenshot_path)
