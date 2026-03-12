@@ -18,6 +18,20 @@ from dotenv import load_dotenv
 
 class Settings:
     """애플리케이션 설정을 관리하는 클래스"""
+
+    @staticmethod
+    def _to_bool(value: Any, default: bool = False) -> bool:
+        """다양한 입력 값을 bool로 정규화합니다."""
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return default
+        text = str(value).strip().lower()
+        if text in {"1", "true", "yes", "y", "on"}:
+            return True
+        if text in {"0", "false", "no", "n", "off"}:
+            return False
+        return default
     
     def __init__(self, config_path: str = "config/config.yaml"):
         load_dotenv()
@@ -46,10 +60,14 @@ class Settings:
     
     def get_slack_config(self) -> Dict[str, str]:
         slack_cfg = self.config.get("slack", {})
+        send_dm_also_raw = os.getenv("SLACK_SEND_DM_ALSO", slack_cfg.get("send_dm_also", False))
         return {
             "bot_token": slack_cfg.get("bot_token", "") or os.getenv("SLACK_BOT_TOKEN", ""),
+            "channel_id": slack_cfg.get("channel_id", "") or os.getenv("SLACK_CHANNEL_ID", ""),
+            "channel_name": slack_cfg.get("channel_name", "") or os.getenv("SLACK_CHANNEL_NAME", ""),
             "dm_user_id": slack_cfg.get("dm_user_id", "") or os.getenv("SLACK_DM_USER_ID", ""),
             "dm_email": slack_cfg.get("dm_email", "") or os.getenv("SLACK_DM_EMAIL", ""),
+            "send_dm_also": self._to_bool(send_dm_also_raw, default=False),
             "retry_attempts": slack_cfg.get("retry_attempts", 3),
             "retry_delay": slack_cfg.get("retry_delay", 2)
         }

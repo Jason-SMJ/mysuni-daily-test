@@ -100,6 +100,28 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         ):
             print("❌ 로그인 실패")
             slack_notifier.send_text("❌ MySuni 로그인 실패")
+
+            executed_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+            login_fail_summary = "\n".join(
+                [
+                    "[mySUNI 일일점검 결과 Summary]",
+                    f"• *실행 일시*: {executed_at}",
+                    "• *대상 시나리오*: 로그인 실패로 미진행",
+                    "• *점검 결과*",
+                    "   - 전체 : 성공 0 / 실패 1 / 판단불가 0 / 스킵 0",
+                    "",
+                    "• *실패 항목 목록*: ",
+                    "1. common / item N/A / login / 비정상",
+                    "   - 항목명: MySuni 로그인",
+                    "   - 요약: 로그인 페이지 진입 또는 로그인 폼 탐색 실패",
+                    "   - 스크린샷: N/A",
+                    "",
+                    "• *조치 우선순위*:",
+                    "- 1순위: 계정/비밀번호 및 로그인 페이지 접근 상태 확인",
+                    "- 2순위: 네트워크/프록시/로딩 지연 여부 확인",
+                ]
+            )
+            slack_notifier.send_text(login_fail_summary)
             return
         
         print("✅ 로그인 성공")

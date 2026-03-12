@@ -12,8 +12,11 @@ azure:
 
 slack:
   bot_token: ""               # .env 파일의 SLACK_BOT_TOKEN 사용 권장
+  channel_id: "C09QPQP4PKK"              # Slack 채널 ID (예: C12345678) - 최우선
+  channel_name: "#mysuni-qa-noti"            # Slack 채널명 (예: #career-qa-noti)
   dm_user_id: ""              # Slack 사용자 ID (예: U12345678)
   dm_email: "myapplesmj@gmail.com"    # Slack 이메일 주소 (dm_user_id가 없을 때 사용)
+  send_dm_also: true          # true면 채널 전송과 함께 DM도 동시 전송
   retry_attempts: 3
   retry_delay: 2
 
@@ -65,7 +68,10 @@ test:
 # 민감한 정보는 .env 파일에 저장하세요:
 # AZURE_OPENAI_KEY=your_key_here
 # SLACK_BOT_TOKEN=xoxb-your-token
+# SLACK_CHANNEL_ID=C12345678
+# SLACK_CHANNEL_NAME=#mysuni-qa-noti
 # SLACK_DM_USER_ID=U12345678
 # SLACK_DM_EMAIL=user@company.com
+# SLACK_SEND_DM_ALSO=true
 # MYSUNI_ID=your_id
 # MYSUNI_PWD=your_password
