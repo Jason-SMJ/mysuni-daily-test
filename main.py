@@ -110,7 +110,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                     "• *점검 결과*",
                     "   - 전체 : 성공 0 / 실패 1 / 판단불가 0 / 스킵 0",
                     "",
-                    "• *실패 항목 목록*: ",
+                    "• *❌ 실패 항목 목록*: ",
                     "1. common / item N/A / login / 비정상",
                     "   - 항목명: MySuni 로그인",
                     "   - 요약: 로그인 페이지 진입 또는 로그인 폼 탐색 실패",
@@ -335,7 +335,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                 )
             )
 
-        summary_lines.extend(["", "• *실패 항목 목록*:"])
+        summary_lines.extend(["", "• *❌ 실패 항목 목록*:"])
 
         if failure_items:
             for idx, item in enumerate(failure_items, start=1):

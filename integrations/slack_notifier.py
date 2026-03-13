@@ -307,7 +307,7 @@ class SlackNotifier:
 
         # 파일 업로드의 initial_comment에 본문을 담아 단일 메시지로 전송한다.
         single_message = (
-            f"[{service_name} 자동점검 결과] {detection_label} 항목 감지\n\n"
+            f"❌ [{service_name} 자동점검 결과] {detection_label} 항목 감지\n\n"
             f"• *시나리오*: {scenario_key}\n"
             f"• *항목 ID*: {item_id}\n"
             f"• *항목명*: {item_name}\n"

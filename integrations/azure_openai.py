@@ -35,6 +35,7 @@ class AzureVisionClient:
         "너는 QA 테스트 어시스턴트야. "
         "스크린샷을 보고 정상/비정상 여부를 판별해."
         "결과는 '정상', '비정상', '판단불가' 중 하나로만 대답해."
+        "첫 줄은 반드시 '판정: 정상|비정상|판단불가' 형식으로 작성해."
         "단계별로 분석하세요:"
         "Step 1: 레이아웃 구조"
         "Step 2: UI 요소 확인"
@@ -120,20 +121,47 @@ class AzureVisionClient:
         Returns: "정상", "비정상", "판단불가" 중 하나
         """
         normalized = content.strip()
-        first_token_match = re.match(r"^(정상|비정상|판단불가)", normalized)
 
-        if first_token_match:
-            token = first_token_match.group(1)
+        # 1) 명시 포맷 우선 파싱 (권장 출력 형식)
+        explicit_match = re.search(
+            r"(?:^|\n)\s*(?:\[)?\s*(?:판정|최종\s*판정|판정\s*결과|결과)\s*[:：]\s*(정상|비정상|판단불가)",
+            normalized,
+        )
+        if explicit_match:
+            token = explicit_match.group(1)
         else:
-            # 백업 규칙: '비정상' 우선 탐지 후 '정상' 탐지
-            if "비정상" in normalized:
-                token = "비정상"
-            elif "정상" in normalized:
-                token = "정상"
-            elif "판단불가" in normalized:
-                token = "판단불가"
+            # 2) 선두 토큰 파싱 (마크다운 강조 포함)
+            leading_token_match = re.match(
+                r"^\s*(?:\*{1,2})?\s*(정상|비정상|판단불가)\s*(?:\*{1,2})?(?:\b|$)",
+                normalized,
+            )
+            if leading_token_match:
+                token = leading_token_match.group(1)
             else:
-                token = "판단불가"
+                # 3) 문장 기반 백업 규칙
+                explicit_verdict_match = re.search(
+                    r"(?<![가-힣A-Za-z])(정상|비정상|판단불가)(?![가-힣A-Za-z])\s*(?:['\"”`])?\s*(?:입니다|임|으로\s*판정|으로\s*판단)",
+                    normalized,
+                )
+                if explicit_verdict_match:
+                    token = explicit_verdict_match.group(1)
+                else:
+                    # '비정상 요소는 보이지 않음/없음' 같은 부정문은 비정상 신호에서 제외한다.
+                    has_abnormal_word = "비정상" in normalized
+                    has_normal_word = "정상" in normalized
+                    abnormal_negated = bool(
+                        re.search(r"비정상(?:적인)?\s*(?:요소|화면|징후)?\s*(?:은|가)?\s*보이지\s*않", normalized)
+                        or re.search(r"비정상(?:적인)?\s*(?:요소|화면|징후)?\s*(?:은|가)?\s*없", normalized)
+                    )
+
+                    if has_abnormal_word and not abnormal_negated and not has_normal_word:
+                        token = "비정상"
+                    elif has_normal_word and (not has_abnormal_word or abnormal_negated):
+                        token = "정상"
+                    elif "판단불가" in normalized:
+                        token = "판단불가"
+                    else:
+                        token = "판단불가"
 
         if token == "정상":
             print("✅ 화면 정상으로 판단")
