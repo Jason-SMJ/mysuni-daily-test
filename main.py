@@ -126,6 +126,10 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         
         print("✅ 로그인 성공")
         
+        # 로그인 이후 테스트 시나리오는 career.mysuni.sk.com으로 전환
+        mysuni_page.base_url = mysuni_config["career_url"].rstrip('/')
+        print(f"🌐 테스트 URL 전환: {mysuni_page.base_url}")
+        
         # 5. 테스트 시나리오 계획 수립
         scenario_plans = [
             ScenarioPlan(

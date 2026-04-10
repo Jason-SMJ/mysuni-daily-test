@@ -53,10 +53,13 @@ class MySuniPage:
     
     async def login(self, username: str, password: str) -> bool:
         try:
-            await self.page.goto(self.base_url)
-            await self.page.wait_for_selector('#user-login-id', timeout=10000)
+            await self.page.goto(self.base_url, wait_until="networkidle")
+            print(f"🌐 현재 URL: {self.page.url}")
+            await self.page.screenshot(path="screenshots/debug/login_page.png")
+            print("📸 로그인 페이지 스크린샷 저장: screenshots/debug/login_page.png")
+            await self.page.wait_for_selector('#user-login-id', timeout=30000)
             await self.page.fill('#user-login-id', username)
-            await self.page.wait_for_selector('#user-password', timeout=10000)
+            await self.page.wait_for_selector('#user-password', timeout=30000)
             await self.page.fill('#user-password', password)
             await self.page.get_by_role("button", name="로그인").click()
             await self.page.wait_for_timeout(10000)

@@ -76,6 +76,7 @@ class Settings:
         mysuni_cfg = self.config.get("mysuni", {})
         return {
             "base_url": mysuni_cfg.get("base_url", "http://mysuni.sk.com/"),
+            "career_url": mysuni_cfg.get("career_url", "https://career.mysuni.sk.com/"),
             "id": os.getenv("MYSUNI_ID", ""),
             "password": os.getenv("MYSUNI_PWD", "")
         }
