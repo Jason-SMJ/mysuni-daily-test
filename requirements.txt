@@ -3,3 +3,5 @@ playwright
 pyyaml
 openai
 slack_sdk
+python-json-logger==2.0.7
+filelock==3.14.0
