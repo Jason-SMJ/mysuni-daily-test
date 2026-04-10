@@ -1,0 +1,107 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: career-qa-daily
+  namespace: career-qa
+spec:
+  # Run daily at 02:00, 07:00, 13:00 UTC
+  schedule: "0 2,7,13 * * *"
+
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  suspend: false
+
+  jobTemplate:
+    spec:
+      parallelism: 1
+      completions: 1
+      backoffLimit: 2
+      activeDeadlineSeconds: 1200
+      ttlSecondsAfterFinished: 86400
+
+      template:
+        metadata:
+          labels:
+            app: career-qa
+            component: daily-batch
+
+        spec:
+          serviceAccountName: career-qa-sa
+          restartPolicy: Never
+
+          imagePullSecrets:
+          - name: sk-registry-credentials
+
+          containers:
+          - name: career-qa
+            image: registry.zcp.sk.com/career-qa/career-qa:latest
+            imagePullPolicy: Always
+
+            env:
+            - name: AZURE_OPENAI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: career-qa-secrets
+                  key: azure-openai-key
+            - name: SLACK_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: career-qa-secrets
+                  key: slack-bot-token
+            - name: SLACK_CHANNEL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: career-qa-secrets
+                  key: slack-channel-id
+            - name: SLACK_DM_USER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: career-qa-secrets
+                  key: slack-dm-user-id
+            - name: SLACK_SEND_DM_ALSO
+              value: "true"
+            - name: MYSUNI_ID
+              valueFrom:
+                secretKeyRef:
+                  name: career-qa-secrets
+                  key: mysuni-id
+            - name: MYSUNI_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: career-qa-secrets
+                  key: mysuni-pwd
+            - name: HTTPS_PROXY
+              valueFrom:
+                secretKeyRef:
+                  name: career-qa-secrets
+                  key: https-proxy
+                  optional: true
+
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "500m"
+              limits:
+                memory: "1Gi"
+                cpu: "1000m"
+
+            volumeMounts:
+            - name: screenshots
+              mountPath: /workspace/screenshots
+            - name: logs
+              mountPath: /workspace/logs
+
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: false
+
+          volumes:
+          - name: screenshots
+            emptyDir:
+              sizeLimit: 500Mi
+          - name: logs
+            emptyDir:
+              sizeLimit: 100Mi

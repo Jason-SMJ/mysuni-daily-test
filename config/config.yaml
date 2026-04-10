@@ -24,12 +24,12 @@ mysuni:
   base_url: "http://mysuni.sk.com/"
 
 browser:
-  headless: false  # true로 설정하면 브라우저 UI 없이 실행
+  headless: true  # ZCP 컨테이너 환경에서 UI 없이 실행
   viewport:
     width: 1280
     height: 1024
   timeout: 30000
-  download_dir: "downloads"  # 다운로드 파일 저장 디렉토리
+  download_dir: "/tmp/downloads"  # ZCP 환경의 임시 디렉토리
 
 test:
   # 테스트할 페이지 URL 매핑
