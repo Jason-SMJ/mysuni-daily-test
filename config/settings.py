@@ -76,15 +76,20 @@ class Settings:
         mysuni_cfg = self.config.get("mysuni", {})
         return {
             "base_url": mysuni_cfg.get("base_url", "http://mysuni.sk.com/"),
-            "career_url": mysuni_cfg.get("career_url", "https://career.mysuni.sk.com/"),
             "id": os.getenv("MYSUNI_ID", ""),
             "password": os.getenv("MYSUNI_PWD", "")
         }
     
     def get_browser_config(self) -> Dict[str, Any]:
         browser_cfg = self.config.get("browser", {})
+        # BROWSER_HEADLESS 환경변수로 override 가능 (Docker 환경에서 true로 설정)
+        headless_env = os.getenv("BROWSER_HEADLESS")
+        if headless_env is not None:
+            headless = self._to_bool(headless_env, default=False)
+        else:
+            headless = browser_cfg.get("headless", False)
         return {
-            "headless": browser_cfg.get("headless", False),
+            "headless": headless,
             "viewport": browser_cfg.get("viewport", {"width": 1280, "height": 1024}),
             "timeout": browser_cfg.get("timeout", 30000),
             "download_dir": browser_cfg.get("download_dir", "downloads")

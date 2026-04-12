@@ -22,10 +22,9 @@ slack:
 
 mysuni:
   base_url: "https://mysuni.sk.com/"
-  career_url: "https://career.mysuni.sk.com/"
 
 browser:
-  headless: false  # ZCP 컨테이너 환경에서 UI 없이 실행
+  headless: false  # 로컬 실행 시 false, Docker/서버 환경에서는 true로 변경 필요
   viewport:
     width: 1280
     height: 1024

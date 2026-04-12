@@ -27,7 +27,11 @@ class BrowserManager:
     
     async def launch(self) -> Browser:
         self.playwright = await async_playwright().start()
-        self.browser = await self.playwright.chromium.launch(headless=self.headless)
+        args = []
+        if self.headless:
+            # Docker/컨테이너 환경(Display 없음)에서 필수 옵션
+            args = ["--no-sandbox", "--disable-dev-shm-usage"]
+        self.browser = await self.playwright.chromium.launch(headless=self.headless, args=args)
         return self.browser
     
     async def new_page(self) -> Page:
