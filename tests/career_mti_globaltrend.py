@@ -11,7 +11,7 @@ class CareerMTIGlobalTrendTestScenario(BaseTest):
     
     SCENARIO_NAME = "자동검증 5: Career MTI Global Trend"
     SCREENSHOT_FILENAME = "screenshot_career_mti_global_trend.png"
-    PAGE_PATH = "/suni-main/career?page=/career/mti-global-trend"
+    PAGE_PATH = "/career/mti-global-trend"
     
     async def run(self) -> bool:
         """테스트를 실행합니다."""

@@ -25,7 +25,7 @@ class CareerProfileTestScenario(BaseTest):
     """Career Profile 페이지 테스트 (파일럿 1단계)."""
 
     SCENARIO_NAME = "파일럿 자동검증: Career Profile"
-    PAGE_PATH = "/suni-main/career?page=/main"
+    PAGE_PATH = "/profile"
     # 모달 성공 기준: BaseModal_main__ prefix 클래스가 실제로 표시된 경우만 인정.
     MODAL_CLASS_SELECTOR = "[class*='BaseModal_main__']"
     POPUP_SELECTORS = [MODAL_CLASS_SELECTOR]

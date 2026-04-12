@@ -11,7 +11,7 @@ class Career1on1TestScenario(BaseTest):
     SERVICE_KEY = "career_1on1"
     SCENARIO_NAME = "자동 검증 : Career Coach 1on1"
     SCREENSHOT_FILENAME = "screenshot_career_coach_1on1.png"
-    PAGE_PATH = "/suni-main/career?page=/coach/one-on-one"
+    PAGE_PATH = "/coach/one-on-one"
 
     def _resolve_reference_image(self) -> Path | None:
         path = Path("baselines") / self.SERVICE_KEY / self.SCREENSHOT_FILENAME

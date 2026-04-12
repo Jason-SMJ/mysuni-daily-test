@@ -21,7 +21,8 @@ slack:
   retry_delay: 2
 
 mysuni:
-  base_url: "https://mysuni.sk.com/"
+  base_url: "https://mysuni.sk.com/"        # 로그인용
+  career_url: "https://career.mysuni.sk.com/"  # 점검 시나리오용
 
 browser:
   headless: false  # 로컬 실행 시 false, Docker/서버 환경에서는 true로 변경 필요
@@ -34,15 +35,13 @@ browser:
 test:
   # 테스트할 페이지 URL 매핑
   pages:
-    career_profile: "/suni-main/career?page=/main"
-    career_recommend: "/suni-main/career?page=/career/recommend"
-    career_mypick: "/suni-main/career?page=/career/my-pick"
-    career_coach_1on1: "/suni-main/career?page=/coach/one-on-one"
-    career_coach_myprogress: "/suni-main/career?page=/coach/progress-review"
-    # career_team_management: "/suni-main/career?page=/career/team/management"
-    career_mti_internalview: "/suni-main/career?page=/mti/internal"
-    # career_mti_globaltrend: "/suni-main/career?page=/career/mti/global-trend" 
-    career_mti_goalsetting: "/suni-main/career?page=/mti/goal-setting/goal-state"
+    career_profile: "/profile"
+    career_recommend: "/career/recommend"
+    career_mypick: "/career/my-pick"
+    career_coach_1on1: "/coach/one-on-one"
+    career_coach_myprogress: "/coach/progress-review"
+    career_mti_internalview: "/mti/internal"
+    career_mti_goalsetting: "/mti/goal-setting/goal-state"
   # 테스트 시나리오 설정
   scenarios:
     - name: "career_profile"

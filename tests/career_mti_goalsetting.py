@@ -11,7 +11,7 @@ class CareerMTIGoalSettingTestScenario(BaseTest):
     
     SCENARIO_NAME = "자동검증 5: Career MTI Goal Setting"
     SCREENSHOT_FILENAME = "screenshot_career_mti_goal_setting.png"
-    PAGE_PATH = "/suni-main/career?page=/mti/goal-setting/goal-state"
+    PAGE_PATH = "/mti/goal-setting/goal-state"
     
     async def run(self) -> bool:
         """테스트를 실행합니다."""

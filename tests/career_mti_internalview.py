@@ -11,7 +11,7 @@ class CareerMTIInternalViewTestScenario(BaseTest):
     
     SCENARIO_NAME = "자동검증 5: Career MTI Internal View"
     SCREENSHOT_FILENAME = "screenshot_career_mti_internal_view.png"
-    PAGE_PATH = "/suni-main/career?page=/mti/internal"
+    PAGE_PATH = "/mti/internal"
     
     async def run(self) -> bool:
         """테스트를 실행합니다."""

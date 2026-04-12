@@ -13,7 +13,7 @@ class CareerMyPickTestScenario(BaseTest):
     SERVICE_KEY = "career_mypick"
     SCENARIO_NAME = "자동검증 6: Career My Pick"
     SCREENSHOT_FILENAME = "screenshot_career_mypick.png"
-    PAGE_PATH = "/suni-main/career?page=/career/my-pick"
+    PAGE_PATH = "/career/my-pick"
 
     def _resolve_reference_image(self) -> Path | None:
         path = Path("baselines") / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
