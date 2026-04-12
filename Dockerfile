@@ -6,7 +6,6 @@ WORKDIR /workspace
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     libpango-1.0-0 \
-    libpango-gobject-0 \
     libx11-6 \
     libx11-xcb1 \
     libxcb1 \
@@ -21,14 +20,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-liberation \
     xdg-utils \
     ca-certificates \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libcairo2 \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright browsers (Chromium)
-RUN playwright install chromium
+
 
 # Copy application code
 COPY . .
@@ -37,8 +44,12 @@ COPY . .
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /workspace
 USER appuser
 
+# Install Playwright browsers (Chromium)
+RUN playwright install chromium
+
 # Create necessary directories
 RUN mkdir -p logs screenshots downloads locks
 
 # Set entrypoint
+ENV BROWSER_HEADLESS=true
 ENTRYPOINT ["python", "main.py"]
