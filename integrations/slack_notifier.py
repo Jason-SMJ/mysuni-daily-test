@@ -29,8 +29,7 @@ class SlackNotifier:
         self.config = config
         self.client = WebClient(
             token=config["bot_token"],
-            # proxy=proxy_url,
-            proxy=None,
+            proxy=proxy_url or None,
             timeout=30
         )
         self.retry_attempts = config.get("retry_attempts", 3)

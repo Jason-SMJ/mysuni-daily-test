@@ -4,7 +4,8 @@
 azure:
   openai:
     # endpoint: "https://ai-core-openai-llm.openai.azure.com/"
-    endpoint: "https://mysuni-openai-swedencentral.openai.azure.com/"
+    # endpoint: "https://mysuni-openai-swedencentral.openai.azure.com/"  # Sweden Central (비활성)
+    endpoint: "https://mysuni-openai-eastus.openai.azure.com"             # East US (활성)
     api_key: ""                                     # .env 파일의 AZURE_OPENAI_KEY 사용 권장
     api_version: "2024-05-01-preview"
     vision_deployment: "mysuni-openai-gpt4o"        # 스크린샷 판별 모델

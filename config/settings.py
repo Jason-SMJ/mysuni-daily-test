@@ -52,10 +52,10 @@ class Settings:
     def get_azure_config(self) -> Dict[str, str]:
         azure_cfg = self.config.get("azure", {}).get("openai", {})
         return {
-            "endpoint": azure_cfg.get("endpoint", ""),
-            "api_key": azure_cfg.get("api_key", "") or os.getenv("AZURE_OPENAI_KEY", ""),
+            "endpoint": os.getenv("AZURE_OPENAI_ENDPOINT", "") or azure_cfg.get("endpoint", ""),
+            "api_key": os.getenv("AZURE_OPENAI_KEY", "") or azure_cfg.get("api_key", ""),
             "api_version": azure_cfg.get("api_version", "2024-05-01-preview"),
-            "deployment": azure_cfg.get("vision_deployment", "gpt-4-vision")
+            "deployment": os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT", "") or azure_cfg.get("vision_deployment", "gpt-4-vision")
         }
     
     def get_slack_config(self) -> Dict[str, str]:
