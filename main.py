@@ -74,7 +74,24 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
     scenario_config = {
         item.get("name", ""): item for item in settings.get_test_scenarios()
     }
-    
+
+    # 환경변수 로딩 확인 출력
+    def mask(v): return (str(v)[:4] + "****" + str(v)[-2:]) if v and len(str(v)) > 6 else ("****" if v else "(없음)")
+    print("\n🔑 환경변수 로딩 확인:")
+    print(f"  AZURE_OPENAI_KEY     : {mask(azure_config.get('api_key'))}")
+    print(f"  AZURE_ENDPOINT       : {azure_config.get('endpoint', '(없음)')}")
+    print(f"  AZURE_DEPLOYMENT     : {azure_config.get('vision_deployment', '(없음)')}")
+    print(f"  SLACK_BOT_TOKEN      : {mask(slack_config.get('bot_token'))}")
+    print(f"  SLACK_CHANNEL_ID     : {slack_config.get('channel_id') or '(없음)'}")
+    print(f"  SLACK_CHANNEL_NAME   : {slack_config.get('channel_name') or '(없음)'}")
+    print(f"  SLACK_DM_USER_ID     : {slack_config.get('dm_user_id') or '(없음)'}")
+    print(f"  SLACK_DM_EMAIL       : {slack_config.get('dm_email') or '(없음)'}")
+    print(f"  SLACK_SEND_DM_ALSO   : {slack_config.get('send_dm_also', False)}")
+    print(f"  MYSUNI_ID            : {mysuni_config.get('id', '(없음)')}")
+    print(f"  MYSUNI_PWD           : {mask(mysuni_config.get('password'))}")
+    print(f"  HTTPS_PROXY          : {proxy_url or '(없음)'}")
+    print(f"  BROWSER_HEADLESS     : {browser_config.get('headless', False)}")
+
     # 2. 클라이언트 초기화
     print("🔧 클라이언트 초기화 중...")
     vision_client = AzureVisionClient(azure_config)
