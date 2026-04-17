@@ -1,0 +1,49 @@
+# OS / editor
+.DS_Store
+.vscode/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+bin/
+lib/
+include/
+pyvenv.cfg
+.venv/
+venv/
+env/
+
+# Secrets / local config
+.env
+.env.*
+
+# Runtime artifacts
+logs/
+downloads/
+screenshots/
+
+# Git
+.git/
+.gitignore
+
+# Docker build files
+Dockerfile
+.dockerignore
+
+# CI / deployment scripts
+deployment/
+zcp-build-push.sh
+
+# Dev/debug artifacts
+.claude/
+.claudeignore
+career-qa-app.tar
+*.tar
+*.zip
+
+# Test outputs / baselines (선택: 이미지가 크면 제외)
+# baselines/

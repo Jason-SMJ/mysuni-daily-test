@@ -1,54 +1,13 @@
-FROM python:3.13-slim
+FROM mysuni-registry.mysuni.cloudzcp.net/mysuni-carr-prd/career-playwright:base-1
 
 WORKDIR /workspace
 
-# Install Playwright and system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    libpango-1.0-0 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxext6 \
-    libxrender1 \
-    libnss3 \
-    libnspr4 \
-    libgbm1 \
-    libdrm2 \
-    libxkbcommon0 \
-    libatspi2.0-0 \
-    fonts-liberation \
-    xdg-utils \
-    ca-certificates \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libcairo2 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-
-
-# Copy application code
-COPY . .
-
-# Create non-root user for security
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /workspace
 USER appuser
 
-# Install Playwright browsers (Chromium)
-RUN playwright install chromium
-
-# Create necessary directories
-RUN mkdir -p logs screenshots downloads locks
+COPY . .
 
 # Set entrypoint
 ENV BROWSER_HEADLESS=true

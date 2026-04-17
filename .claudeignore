@@ -1,0 +1,86 @@
+# Python virtual environment
+bin/
+include/
+lib/
+pyvenv.cfg
+
+# Logs
+logs/
+*.log
+
+# Screenshots and images
+screenshots/
+baselines/
+downloads/
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Debug files
+debug/
+*.json
+
+# Temporary files
+*.tmp
+*.temp
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Cache directories
+.cache/
+.pytest_cache/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Archives / Misc
+*.zip
+*.tar
+*.tar.gz
+*.rar
+tmp/
+temp/
+
+# Git
+.git/
+.gitignore
+
+# Next.js / Frontend build
+.next/
+out/
+dist/
+.build/
+.vercel/
+
+# Node / JS
+node_modules/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml

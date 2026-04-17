@@ -5,9 +5,11 @@ Pilot 1단계: Career Profile 체크리스트 검증 우선 실행
 
 import asyncio
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass
 from typing import Callable
+
+KST = timezone(timedelta(hours=9))
 from config.settings import Settings
 from core.browser import BrowserManager, MySuniPage
 from core.screenshot import ScreenshotManager
@@ -118,7 +120,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
             print("❌ 로그인 실패")
             slack_notifier.send_text("❌ MySuni 로그인 실패")
 
-            executed_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+            executed_at = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
             login_fail_summary = "\n".join(
                 [
                     "[mySUNI 일일점검 결과 Summary]",
@@ -325,7 +327,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         )
         print("="*60)
 
-        executed_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+        executed_at = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
 
         total_success_items = sum(v["success"] for v in service_result_map.values())
         total_failure_items = sum(v["failure"] for v in service_result_map.values())
