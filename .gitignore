@@ -28,3 +28,11 @@ screenshots/
 dist/
 build/
 *.egg-info/
+
+# Large artifacts
+*.tar
+*.tar.gz
+*.zip
+
+# Claude internal
+.claude/

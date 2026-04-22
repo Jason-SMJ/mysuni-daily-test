@@ -15,6 +15,7 @@ from core.browser import BrowserManager, MySuniPage
 from core.screenshot import ScreenshotManager
 from integrations.azure_openai import AzureVisionClient
 from integrations.slack_notifier import SlackNotifier
+from integrations.sms_notifier import SmsNotifier
 
 # 새로운 Career 페이지 테스트 시나리오
 from tests.career_profile_test import CareerProfileTestScenario
@@ -70,6 +71,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
     
     azure_config = settings.get_azure_config()
     slack_config = settings.get_slack_config()
+    sms_config = settings.get_sms_config()
     mysuni_config = settings.get_mysuni_credentials()
     browser_config = settings.get_browser_config()
     proxy_url = settings.get_proxy_url()
@@ -93,11 +95,14 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
     print(f"  MYSUNI_PWD           : {mask(mysuni_config.get('password'))}")
     print(f"  HTTPS_PROXY          : {proxy_url or '(없음)'}")
     print(f"  BROWSER_HEADLESS     : {browser_config.get('headless', False)}")
+    print(f"  SMS_ENABLED          : {sms_config.get('enabled', False)}")
+    print(f"  SMS_API_URL          : {sms_config.get('api_url') or '(기본값 사용)'}")
 
     # 2. 클라이언트 초기화
     print("🔧 클라이언트 초기화 중...")
     vision_client = AzureVisionClient(azure_config)
     slack_notifier = SlackNotifier(slack_config, proxy_url)
+    sms_notifier = SmsNotifier(sms_config, proxy_url)
     screenshot_manager = ScreenshotManager(output_dir="screenshots")
     
     # 3. 브라우저 시작 및 테스트 실행
@@ -385,13 +390,16 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
 
         slack_summary_message = "\n".join(summary_lines)
         
-        # 8. Slack 최종 알림
-        if failed_count == 0:
+        # 8. Slack 최종 알림 및 SMS 발송
+        has_failure = failed_count > 0 or total_failure_items > 0
+
+        if not has_failure:
             print("\n🎉 모든 테스트 통과!")
             slack_notifier.send_text(slack_summary_message)
         else:
-            print(f"\n⚠️ {failed_count}개 테스트 실패")
+            print(f"\n⚠️ {failed_count}개 시나리오 실패 / 비정상 항목 {total_failure_items}건")
             slack_notifier.send_text(slack_summary_message)
+            sms_notifier.send_fail_alert()
         
         # 종료 전 대기
         await page.wait_for_timeout(3000)

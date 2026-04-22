@@ -104,6 +104,19 @@ class Settings:
         test_cfg = self.config.get("test", {})
         return test_cfg.get("scenarios", [])
     
+    def get_sms_config(self) -> Dict[str, Any]:
+        sms_cfg = self.config.get("sms", {})
+        return {
+            "enabled": self._to_bool(
+                os.getenv("SMS_ENABLED", sms_cfg.get("enabled", False))
+            ),
+            "api_url": (
+                os.getenv("SMS_API_URL", "")
+                or sms_cfg.get("api_url", "")
+            ),
+            "timeout": int(sms_cfg.get("timeout", 10)),
+        }
+
     def get_proxy_url(self) -> str:
         return (os.getenv("HTTPS_PROXY", "") or os.getenv("https_proxy", "") 
                 or os.getenv("HTTP_PROXY", "") or os.getenv("http_proxy", ""))
