@@ -106,10 +106,13 @@ class Settings:
     
     def get_sms_config(self) -> Dict[str, Any]:
         sms_cfg = self.config.get("sms", {})
+        sms_enabled_env = os.getenv("SMS_ENABLED", "").strip()
+        if sms_enabled_env:
+            enabled = self._to_bool(sms_enabled_env)
+        else:
+            enabled = self._to_bool(sms_cfg.get("enabled", True))
         return {
-            "enabled": self._to_bool(
-                os.getenv("SMS_ENABLED", sms_cfg.get("enabled", True))
-            ),
+            "enabled": enabled,
             "api_url": (
                 os.getenv("SMS_API_URL", "")
                 or sms_cfg.get("api_url", "")
