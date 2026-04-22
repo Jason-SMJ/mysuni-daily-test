@@ -26,7 +26,7 @@ class SmsNotifier:
             proxy_url: 프록시 URL (선택)
         """
         self.enabled: bool = bool(config.get("enabled", False))
-        self.api_url: str = config.get("api_url", self.DEFAULT_API_URL).strip()
+        self.api_url: str = (config.get("api_url", "") or self.DEFAULT_API_URL).strip()
         self.timeout: int = int(config.get("timeout", 10))
         self.proxy_url: Optional[str] = proxy_url
 
