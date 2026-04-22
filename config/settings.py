@@ -108,7 +108,7 @@ class Settings:
         sms_cfg = self.config.get("sms", {})
         return {
             "enabled": self._to_bool(
-                os.getenv("SMS_ENABLED", sms_cfg.get("enabled", False))
+                os.getenv("SMS_ENABLED", sms_cfg.get("enabled", True))
             ),
             "api_url": (
                 os.getenv("SMS_API_URL", "")
