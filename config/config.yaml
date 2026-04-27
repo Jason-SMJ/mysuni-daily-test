@@ -32,10 +32,17 @@ browser:
     height: 1024
   timeout: 30000
   download_dir: "/tmp/downloads"  # ZCP 환경의 임시 디렉토리
+  mobile_device: "iPhone 12"     # LMS_Mobile 에뮬레이션 디바이스
 
 test:
   # 테스트할 페이지 URL 매핑
   pages:
+    # LMS (mysuni.sk.com)
+    lms_main: "/"
+    lms_mobile_install: "/mobile/app/install"
+    one_id_login: "/"
+    one_id_mypage: "/suni-main/mypage?page=/profile-setting"
+    # Career (career.mysuni.sk.com)
     career_profile: "/profile"
     career_recommend: "/career/recommend"
     career_mypick: "/career/my-pick"
@@ -45,9 +52,31 @@ test:
     career_mti_goalsetting: "/mti/goal-setting/goal-state"
   # 테스트 시나리오 설정
   scenarios:
+    # ── 신규 시나리오 ─────────────────────────────────
+    - name: "lms_pc"
+      enabled: false
+      description: "LMS PC 8항목"
+      skip_reason: "초기 셀렉터 튜닝 후 활성화"
+    - name: "lms_ai"
+      enabled: false
+      description: "LMS AI 학습도우미 6항목"
+      skip_reason: "초기 셀렉터 튜닝 후 활성화"
+    - name: "lms_mobile"
+      enabled: false
+      description: "LMS Mobile 10항목 (iPhone 12 에뮬레이션)"
+      skip_reason: "초기 셀렉터 튜닝 후 활성화"
+    - name: "career_extended"
+      enabled: false
+      description: "Career 확장 - Career추천·My Pick 7항목"
+      skip_reason: "초기 셀렉터 튜닝 후 활성화"
+    - name: "one_id"
+      enabled: false
+      description: "One_ID 일반사용자 5항목"
+      skip_reason: "초기 셀렉터 튜닝 후 활성화"
+    # ── 기존 시나리오 ─────────────────────────────────
     - name: "career_profile"
       enabled: true
-      description: "Pilot 1단계: Career Profile 체크리스트"
+      description: "Pilot 1단계: Career Profile 체크리스트 (10항목)"
     - name: "career_recommend"
       enabled: false
       description: "Career Recommend"
