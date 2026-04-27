@@ -17,15 +17,19 @@ from integrations.azure_openai import AzureVisionClient
 from integrations.slack_notifier import SlackNotifier
 from integrations.sms_notifier import SmsNotifier
 
-# 새로운 Career 페이지 테스트 시나리오
+# Career 시나리오
 from tests.career_profile_test import CareerProfileTestScenario
 from tests.career_recommend_test import CareerRecommendTestScenario
-from tests.career_mypick_test import CareerMyPickTestScenario  
+from tests.career_mypick_test import CareerMyPickTestScenario
 from tests.career_1on1_test import Career1on1TestScenario
 from tests.career_myprogress_test import CareerMyProgressTestScenario
-# from tests.career_teammgmt_test import CareerTeamManagementTestScenario
-# from tests.career_teammgmt_test import CareerMTIInternalViewTestScenario
-# from tests.career_teammgmt_test import CareerMTIGlobalTrendTestScenario
+from tests.career_extended_test import CareerExtendedTestScenario
+
+# LMS / One_ID 시나리오
+from tests.lms_pc_test import LmsPcTestScenario
+from tests.lms_ai_test import LmsAiTestScenario
+from tests.lms_mobile_test import LmsMobileTestScenario
+from tests.one_id_test import OneIdTestScenario
 
 
 @dataclass
@@ -35,6 +39,7 @@ class ScenarioPlan:
     enabled: bool
     skip_reason: str
     factory: Callable[[], object]
+    base_url: str | None = None  # None이면 현재 base_url 유지
 
 def parse_cli_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="MySuni 자동 점검 실행")
@@ -47,6 +52,11 @@ def parse_cli_args() -> argparse.Namespace:
             "career_mypick",
             "career_1on1",
             "career_myprogress",
+            "career_extended",
+            "lms_pc",
+            "lms_ai",
+            "lms_mobile",
+            "one_id",
         ],
         help="특정 시나리오만 실행합니다.",
     )
@@ -115,6 +125,11 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         # 페이지 생성
         page = await browser_manager.new_page()
         mysuni_page = MySuniPage(page, mysuni_config["base_url"])
+
+        # 모바일 에뮬레이션 페이지 (LMS_Mobile 전용)
+        mobile_device = browser_config.get("mobile_device", "iPhone 12")
+        mobile_page = await browser_manager.new_mobile_page(mobile_device)
+        mobile_mysuni_page = MySuniPage(mobile_page, mysuni_config["base_url"])
         
         # 4. MySuni 로그인
         print("\n🔑 MySuni 로그인 중...")
@@ -150,17 +165,62 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         
         print("✅ 로그인 성공")
 
-        # 로그인 이후 점검 시나리오는 career.mysuni.sk.com으로 전환
-        mysuni_page.base_url = mysuni_config["career_url"].rstrip('/')
+        lms_base_url = mysuni_config["base_url"].rstrip("/")
+        career_base_url = mysuni_config["career_url"].rstrip("/")
+
+        # 로그인 이후 기본 base_url은 career_url로 전환 (기존 Career 시나리오 유지)
+        mysuni_page.base_url = career_base_url
         print(f"🌐 테스트 URL 전환: {mysuni_page.base_url}")
+
+        # 모바일 페이지도 LMS base_url로 설정
+        mobile_mysuni_page.base_url = lms_base_url
+
+        # 모바일 로그인
+        print("📱 모바일 페이지 로그인 중...")
+        await mobile_mysuni_page.login(mysuni_config["id"], mysuni_config["password"])
 
         # 5. 테스트 시나리오 계획 수립
         scenario_plans = [
+            # ── LMS_PC ──────────────────────────────────────
+            ScenarioPlan(
+                key="lms_pc",
+                name="LMS PC",
+                enabled=scenario_config.get("lms_pc", {}).get("enabled", False),
+                skip_reason=scenario_config.get("lms_pc", {}).get("skip_reason", "미활성화"),
+                base_url=lms_base_url,
+                factory=lambda: LmsPcTestScenario(
+                    page, mysuni_page, screenshot_manager, vision_client, slack_notifier
+                ),
+            ),
+            # ── LMS_AI ──────────────────────────────────────
+            ScenarioPlan(
+                key="lms_ai",
+                name="LMS AI 학습도우미",
+                enabled=scenario_config.get("lms_ai", {}).get("enabled", False),
+                skip_reason=scenario_config.get("lms_ai", {}).get("skip_reason", "미활성화"),
+                base_url=lms_base_url,
+                factory=lambda: LmsAiTestScenario(
+                    page, mysuni_page, screenshot_manager, vision_client, slack_notifier
+                ),
+            ),
+            # ── LMS_Mobile ──────────────────────────────────
+            ScenarioPlan(
+                key="lms_mobile",
+                name="LMS Mobile",
+                enabled=scenario_config.get("lms_mobile", {}).get("enabled", False),
+                skip_reason=scenario_config.get("lms_mobile", {}).get("skip_reason", "미활성화"),
+                base_url=lms_base_url,
+                factory=lambda: LmsMobileTestScenario(
+                    mobile_page, mobile_mysuni_page, screenshot_manager, vision_client, slack_notifier
+                ),
+            ),
+            # ── Career Profile (기존) ────────────────────────
             ScenarioPlan(
                 key="career_profile",
                 name="Pilot: Career Profile",
                 enabled=scenario_config.get("career_profile", {}).get("enabled", True),
                 skip_reason=scenario_config.get("career_profile", {}).get("skip_reason", ""),
+                base_url=career_base_url,
                 factory=lambda: CareerProfileTestScenario(
                     page,
                     mysuni_page,
@@ -170,11 +230,35 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                     target_item_index=selected_item,
                 ),
             ),
+            # ── Career 확장 (추천·My Pick) ───────────────────
+            ScenarioPlan(
+                key="career_extended",
+                name="Career 확장 (추천·My Pick)",
+                enabled=scenario_config.get("career_extended", {}).get("enabled", False),
+                skip_reason=scenario_config.get("career_extended", {}).get("skip_reason", "미활성화"),
+                base_url=career_base_url,
+                factory=lambda: CareerExtendedTestScenario(
+                    page, mysuni_page, screenshot_manager, vision_client, slack_notifier
+                ),
+            ),
+            # ── One_ID ──────────────────────────────────────
+            ScenarioPlan(
+                key="one_id",
+                name="One_ID (일반사용자)",
+                enabled=scenario_config.get("one_id", {}).get("enabled", False),
+                skip_reason=scenario_config.get("one_id", {}).get("skip_reason", "미활성화"),
+                base_url=lms_base_url,
+                factory=lambda: OneIdTestScenario(
+                    page, mysuni_page, screenshot_manager, vision_client, slack_notifier
+                ),
+            ),
+            # ── 기존 단순 Career 시나리오 ─────────────────────
             ScenarioPlan(
                 key="career_recommend",
                 name="Career Recommend",
                 enabled=scenario_config.get("career_recommend", {}).get("enabled", False),
                 skip_reason=scenario_config.get("career_recommend", {}).get("skip_reason", "Pilot 1단계 범위 제외"),
+                base_url=career_base_url,
                 factory=lambda: CareerRecommendTestScenario(
                     page, mysuni_page, screenshot_manager, vision_client, slack_notifier
                 ),
@@ -184,6 +268,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                 name="Career My Pick",
                 enabled=scenario_config.get("career_mypick", {}).get("enabled", False),
                 skip_reason=scenario_config.get("career_mypick", {}).get("skip_reason", "Pilot 1단계 범위 제외"),
+                base_url=career_base_url,
                 factory=lambda: CareerMyPickTestScenario(
                     page, mysuni_page, screenshot_manager, vision_client, slack_notifier
                 ),
@@ -193,6 +278,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                 name="Career Coach 1on1",
                 enabled=scenario_config.get("career_1on1", {}).get("enabled", False),
                 skip_reason=scenario_config.get("career_1on1", {}).get("skip_reason", "Pilot 1단계 범위 제외"),
+                base_url=career_base_url,
                 factory=lambda: Career1on1TestScenario(
                     page, mysuni_page, screenshot_manager, vision_client, slack_notifier
                 ),
@@ -202,6 +288,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                 name="Career Coach My Progress",
                 enabled=scenario_config.get("career_myprogress", {}).get("enabled", False),
                 skip_reason=scenario_config.get("career_myprogress", {}).get("skip_reason", "Pilot 1단계 범위 제외"),
+                base_url=career_base_url,
                 factory=lambda: CareerMyProgressTestScenario(
                     page, mysuni_page, screenshot_manager, vision_client, slack_notifier
                 ),
@@ -223,15 +310,26 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         total_abnormal_items = 0
         total_indeterminate_items = 0
         failure_items: list[dict[str, str | int]] = []
+        _zero = {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0}
         service_result_map: dict[str, dict[str, int]] = {
-            "career_profile": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
-            "career_recommend": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
-            "career_mypick": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
-            "career_1on1": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
-            "career_myprogress": {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
+            "lms_pc": dict(_zero),
+            "lms_ai": dict(_zero),
+            "lms_mobile": dict(_zero),
+            "career_profile": dict(_zero),
+            "career_extended": dict(_zero),
+            "one_id": dict(_zero),
+            "career_recommend": dict(_zero),
+            "career_mypick": dict(_zero),
+            "career_1on1": dict(_zero),
+            "career_myprogress": dict(_zero),
         }
         service_label_map = {
+            "lms_pc": "LMS PC",
+            "lms_ai": "LMS AI 학습도우미",
+            "lms_mobile": "LMS Mobile",
             "career_profile": "Career Profile",
+            "career_extended": "Career 확장 (추천·My Pick)",
+            "one_id": "One_ID",
             "career_recommend": "Career Recommend",
             "career_mypick": "Career My Pick",
             "career_1on1": "Career Coach 1on1",
@@ -251,6 +349,11 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                     {"success": 0, "failure": 0, "indeterminate": 0, "skip": 0},
                 )["skip"] += 1
             else:
+                # 시나리오별 base_url 전환 (LMS ↔ Career)
+                if plan.base_url and plan.key not in ("lms_mobile",):
+                    mysuni_page.base_url = plan.base_url
+                    print(f"🌐 base_url 전환: {mysuni_page.base_url}")
+
                 scenario = plan.factory()
                 before_failure_count = len(failure_items)
                 passed = await scenario.run()

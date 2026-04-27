@@ -40,7 +40,14 @@ class BrowserManager:
         context = await self.browser.new_context(viewport=self.viewport, accept_downloads=True)
         page = await context.new_page()
         return page
-    
+
+    async def new_mobile_page(self, device_name: str = "iPhone 12") -> Page:
+        if not self.browser:
+            await self.launch()
+        device = self.playwright.devices[device_name]
+        context = await self.browser.new_context(**device, accept_downloads=True)
+        return await context.new_page()
+
     async def close(self):
         if self.browser:
             await self.browser.close()
