@@ -18,12 +18,14 @@ from integrations.slack_notifier import SlackNotifier
 from integrations.sms_notifier import SmsNotifier
 
 # Career 시나리오
-from tests.career_profile_test import CareerProfileTestScenario
-from tests.career_recommend_test import CareerRecommendTestScenario
-from tests.career_mypick_test import CareerMyPickTestScenario
-from tests.career_1on1_test import Career1on1TestScenario
-from tests.career_myprogress_test import CareerMyProgressTestScenario
-from tests.career_extended_test import CareerExtendedTestScenario
+from tests.career_test import (
+    CareerProfileTestScenario,
+    CareerExtendedTestScenario,
+    CareerRecommendTestScenario,
+    CareerMyPickTestScenario,
+    Career1on1TestScenario,
+    CareerMyProgressTestScenario,
+)
 
 # LMS / One_ID 시나리오
 from tests.lms_pc_test import LmsPcTestScenario
