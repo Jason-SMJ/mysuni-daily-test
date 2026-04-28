@@ -2,6 +2,7 @@
 
 iPhone 12 모바일 에뮬레이션 컨텍스트에서 실행.
 main.py에서 browser_manager.new_mobile_page()로 생성한 페이지를 전달해야 한다.
+로그인은 체크리스트 2번 항목(_action_login)에서 수행한다.
 """
 
 from tests.multi_item_base import MultiItemTestBase
@@ -15,6 +16,11 @@ class LmsMobileTestScenario(MultiItemTestBase):
     SCENARIO_KEY = "lms_mobile"
     PAGE_PATH = "/mobile/app/install"
     CHECKLIST = LMS_MOBILE_ITEMS
+
+    def __init__(self, *args, mobile_id: str = "", mobile_password: str = "", **kwargs):
+        super().__init__(*args, **kwargs)
+        self._mobile_id = mobile_id
+        self._mobile_password = mobile_password
 
     def _build_action_map(self):
         return {
@@ -31,11 +37,11 @@ class LmsMobileTestScenario(MultiItemTestBase):
         }
 
     async def run(self) -> bool:
-        """모바일 컨텍스트는 별도 로그인이 필요하므로 run()을 오버라이드."""
+        """모바일 시나리오 실행. 로그인은 체크리스트 2번 항목에서 처리."""
         print(f"🚀 {self.SCENARIO_NAME} 시작")
 
         try:
-            # 앱 설치 페이지 확인 (첫 이동)
+            # 앱 설치 페이지로 첫 이동 (체크리스트 1번 항목 준비)
             if not await self.mysuni_page.goto_page(self.PAGE_PATH):
                 return False
             await self.mysuni_page.wait_for_page_loaded()
@@ -90,15 +96,43 @@ class LmsMobileTestScenario(MultiItemTestBase):
             return False
 
     async def _action_login(self) -> bool:
-        """LMS 로그인 페이지로 이동 후 로그인."""
-        if not await self.mysuni_page.goto_page("/"):
-            return False
+        """모바일 로그인 폼에 ID/PWD를 직접 입력하여 로그인.
+
+        iPhone 12 UA는 루트(/) 접근 시 앱 설치 페이지로 리다이렉트되므로
+        현재 페이지(앱 설치 페이지)에서 로그인 진입점을 탐색한 뒤 폼을 채운다.
+        """
+        # 앱 설치 페이지에 있는 로그인 버튼 / 웹 이용 링크 클릭 시도
+        login_entry = ChecklistItem(
+            service="lms_mobile",
+            check_item="mobile-login-entry",
+            check_detail="",
+            expected_result="",
+            mode="playwright",
+            action_type="click",
+            data_testids=["btn-login", "login-button"],
+            semantic_candidates=["로그인", "웹으로 이용", "모바일 웹", "Login"],
+            structural_selectors=[
+                "a:has-text('로그인')",
+                "button:has-text('로그인')",
+                "a[href*='login']",
+            ],
+        )
+        await self._click_with_priority(login_entry)
         await self.mysuni_page.wait_for_page_loaded()
-        item = next(i for i in self.CHECKLIST if i.check_item == "로그인")
-        if await self._click_with_priority(item):
+        await self.page.wait_for_timeout(1500)
+
+        # 로그인 폼(#user-login-id)에 직접 입력
+        try:
+            await self.page.wait_for_selector("#user-login-id", timeout=10000)
+            await self.page.fill("#user-login-id", self._mobile_id)
+            await self.page.fill("#user-password", self._mobile_password)
+            await self.page.get_by_role("button", name="로그인").click()
             await self.mysuni_page.wait_for_page_loaded()
+            await self.page.wait_for_timeout(3000)
             return True
-        return False
+        except Exception as e:
+            print(f"⚠️ 모바일 로그인 폼 입력 실패: {e}")
+            return False
 
     async def _action_select_card(self) -> bool:
         """마이홀 페이지 카드 클릭."""

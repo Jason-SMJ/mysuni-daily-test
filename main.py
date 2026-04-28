@@ -140,7 +140,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
             mysuni_config["password"]
         ):
             print("❌ 로그인 실패")
-            slack_notifier.send_text("❌ MySuni 로그인 실패")
+            # slack_notifier.send_text("❌ MySuni 로그인 실패")
 
             executed_at = datetime.now(KST).strftime("%Y-%m-%d %H:%M")
             login_fail_summary = "\n".join(
@@ -162,7 +162,7 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                     "- 2순위: 네트워크/프록시/로딩 지연 여부 확인",
                 ]
             )
-            slack_notifier.send_text(login_fail_summary)
+            # slack_notifier.send_text(login_fail_summary)
             return
         
         print("✅ 로그인 성공")
@@ -174,12 +174,8 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         mysuni_page.base_url = career_base_url
         print(f"🌐 테스트 URL 전환: {mysuni_page.base_url}")
 
-        # 모바일 페이지도 LMS base_url로 설정
+        # 모바일 페이지도 LMS base_url로 설정 (로그인은 LMS_Mobile 시나리오 내에서 수행)
         mobile_mysuni_page.base_url = lms_base_url
-
-        # 모바일 로그인
-        print("📱 모바일 페이지 로그인 중...")
-        await mobile_mysuni_page.login(mysuni_config["id"], mysuni_config["password"])
 
         # 5. 테스트 시나리오 계획 수립
         scenario_plans = [
@@ -213,8 +209,10 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                 skip_reason=scenario_config.get("lms_mobile", {}).get("skip_reason", "미활성화"),
                 base_url=lms_base_url,
                 factory=lambda: LmsMobileTestScenario(
-                    mobile_page, mobile_mysuni_page, screenshot_manager, vision_client, slack_notifier
-                ),
+                    mobile_page, mobile_mysuni_page, screenshot_manager, vision_client, slack_notifier,
+                    mobile_id=mysuni_config["id"],
+                    mobile_password=mysuni_config["password"],
+                ),  # credentials는 체크리스트 2번(로그인) 항목에서 사용
             ),
             # ── Career Profile (기존) ────────────────────────
             ScenarioPlan(
@@ -500,11 +498,11 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
 
         if not has_failure:
             print("\n🎉 모든 테스트 통과!")
-            slack_notifier.send_text(slack_summary_message)
+            # slack_notifier.send_text(slack_summary_message)
         else:
             print(f"\n⚠️ {failed_count}개 시나리오 실패 / 비정상 항목 {total_failure_items}건")
-            slack_notifier.send_text(slack_summary_message)
-            sms_notifier.send_fail_alert()
+            # slack_notifier.send_text(slack_summary_message)
+            # sms_notifier.send_fail_alert()
         
         # 종료 전 대기
         await page.wait_for_timeout(3000)

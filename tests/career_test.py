@@ -232,7 +232,7 @@ class CareerRecommendTestScenario(BaseTest):
     PAGE_PATH = "/career/recommend"
 
     def _resolve_reference_image(self) -> Path | None:
-        path = Path("baselines") / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
+        path = Path("baselines") / "career" / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
         return path if path.exists() else None
 
     async def run(self) -> bool:
@@ -242,7 +242,7 @@ class CareerRecommendTestScenario(BaseTest):
                 return False
             await self.mysuni_page.wait_for_page_loaded()
             screenshot_path = await self.take_screenshot(
-                f"{self.SERVICE_KEY}/{self.SCREENSHOT_FILENAME}"
+                f"career/{self.SERVICE_KEY}/{self.SCREENSHOT_FILENAME}"
             )
             result, llm_response = await self.validate_with_llm(
                 screenshot_path,
@@ -285,7 +285,7 @@ class CareerMyPickTestScenario(BaseTest):
     PAGE_PATH = "/career/my-pick"
 
     def _resolve_reference_image(self) -> Path | None:
-        path = Path("baselines") / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
+        path = Path("baselines") / "career" / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
         return path if path.exists() else None
 
     async def run(self) -> bool:
@@ -295,7 +295,7 @@ class CareerMyPickTestScenario(BaseTest):
                 return False
             await self.mysuni_page.wait_for_page_loaded()
             screenshot_path = await self.take_screenshot(
-                f"{self.SERVICE_KEY}/{self.SCREENSHOT_FILENAME}"
+                f"career/{self.SERVICE_KEY}/{self.SCREENSHOT_FILENAME}"
             )
             result, llm_response = await self.validate_with_llm(
                 screenshot_path,
@@ -338,7 +338,7 @@ class Career1on1TestScenario(BaseTest):
     PAGE_PATH = "/coach/one-on-one"
 
     def _resolve_reference_image(self) -> Path | None:
-        path = Path("baselines") / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
+        path = Path("baselines") / "career" / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
         return path if path.exists() else None
 
     async def run(self) -> bool:
@@ -348,7 +348,7 @@ class Career1on1TestScenario(BaseTest):
                 return False
             await self.mysuni_page.wait_for_page_loaded()
             screenshot_path = await self.take_screenshot(
-                f"{self.SERVICE_KEY}/{self.SCREENSHOT_FILENAME}"
+                f"career/{self.SERVICE_KEY}/{self.SCREENSHOT_FILENAME}"
             )
             result, llm_response = await self.validate_with_llm(
                 screenshot_path,
@@ -391,7 +391,7 @@ class CareerMyProgressTestScenario(BaseTest):
     PAGE_PATH = "/coach/progress-review"
 
     def _resolve_reference_image(self) -> Path | None:
-        path = Path("baselines") / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
+        path = Path("baselines") / "career" / self.SERVICE_KEY / self.SCREENSHOT_FILENAME
         return path if path.exists() else None
 
     async def run(self) -> bool:
@@ -401,7 +401,7 @@ class CareerMyProgressTestScenario(BaseTest):
                 return False
             await self.mysuni_page.wait_for_page_loaded()
             screenshot_path = await self.take_screenshot(
-                f"{self.SERVICE_KEY}/{self.SCREENSHOT_FILENAME}"
+                f"career/{self.SERVICE_KEY}/{self.SCREENSHOT_FILENAME}"
             )
             result, llm_response = await self.validate_with_llm(
                 screenshot_path,

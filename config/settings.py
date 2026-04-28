@@ -34,7 +34,7 @@ class Settings:
         return default
     
     def __init__(self, config_path: str = "config/config.yaml"):
-        load_dotenv()
+        load_dotenv(override=True)
         self.config = self._load_yaml_config(config_path)
     
     def _load_yaml_config(self, path: str) -> Dict[str, Any]:

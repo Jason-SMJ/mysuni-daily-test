@@ -54,25 +54,20 @@ test:
   scenarios:
     # ── 신규 시나리오 ─────────────────────────────────
     - name: "lms_pc"
-      enabled: false
+      enabled: true
       description: "LMS PC 8항목"
-      skip_reason: "초기 셀렉터 튜닝 후 활성화"
     - name: "lms_ai"
-      enabled: false
+      enabled: true
       description: "LMS AI 학습도우미 6항목"
-      skip_reason: "초기 셀렉터 튜닝 후 활성화"
     - name: "lms_mobile"
-      enabled: false
+      enabled: true
       description: "LMS Mobile 10항목 (iPhone 12 에뮬레이션)"
-      skip_reason: "초기 셀렉터 튜닝 후 활성화"
     - name: "career_extended"
-      enabled: false
+      enabled: true
       description: "Career 확장 - Career추천·My Pick 7항목"
-      skip_reason: "초기 셀렉터 튜닝 후 활성화"
     - name: "one_id"
-      enabled: false
+      enabled: true
       description: "One_ID 일반사용자 5항목"
-      skip_reason: "초기 셀렉터 튜닝 후 활성화"
     # ── 기존 시나리오 ─────────────────────────────────
     - name: "career_profile"
       enabled: true

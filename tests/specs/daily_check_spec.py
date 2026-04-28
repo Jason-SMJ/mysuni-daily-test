@@ -35,7 +35,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
         data_testids=["menu-career", "nav-career"],
         semantic_candidates=["Career", "커리어"],
         structural_selectors=["a[href*='career']", "button:has-text('Career')"],
-        reference_image="career_profile/01_career_menu.png",
+        reference_image="career/career_profile/01_career_menu.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -46,7 +46,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
             "일부 데이터가 없더라도 로딩 오류/빈 화면이 아닌 정상 UI 상태(섹션/카드/라벨)가 확인된다."
         ),
         mode="llm",
-        reference_image="career_profile/02_skill_summary.png",
+        reference_image="career/career_profile/02_skill_summary.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -57,7 +57,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
             "데이터가 없다면 안내/빈 상태 UI가 보이고, 깨짐/로딩만/오류 화면이면 비정상이다."
         ),
         mode="llm",
-        reference_image="career_profile/03_my_skill.png",
+        reference_image="career/career_profile/03_my_skill.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -68,7 +68,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
             "없으면 등록 유도/빈 상태 UI가 보인다."
         ),
         mode="llm",
-        reference_image="career_profile/04_project_info.png",
+        reference_image="career/career_profile/04_project_info.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -80,7 +80,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
             "'Badge & Certification 정보는 각각 mySUNI 및 회사별 E-HR에서 연동되므로, 각 시스템의 정보를 확인해 주세요.'"
         ),
         mode="llm",
-        reference_image="career_profile/05_badge_certificate.png",
+        reference_image="career/career_profile/05_badge_certificate.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -91,7 +91,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
             "없으면 빈 상태/안내 문구가 보인다."
         ),
         mode="llm",
-        reference_image="career_profile/06_learning_info.png",
+        reference_image="career/career_profile/06_learning_info.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -103,7 +103,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
             "'경력 정보는 회사별 E-HR에서 연동됩니다. E-HR 정보를 확인해 주세요.'"
         ),
         mode="llm",
-        reference_image="career_profile/07_education_career.png",
+        reference_image="career/career_profile/07_education_career.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -118,7 +118,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
         data_testids=["profile-user-skill-edit-button", "btn-skill-edit", "skill-edit"],
         semantic_candidates=["Skill 수정하기", "수정하기", "스킬 수정", "완료"],
         structural_selectors=["button:has-text('수정')", "button:has-text('완료')"],
-        reference_image="career_profile/08_skill_edit.png",
+        reference_image="career/career_profile/08_skill_edit.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -138,7 +138,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
             "section:has-text('Project') button[aria-label*='add' i]",
         ],
         popup_close_candidates=["닫기", "취소", "X", "Close"],
-        reference_image="career_profile/09_project_popup.png",
+        reference_image="career/career_profile/09_project_popup.png",
     ),
     ChecklistItem(
         service="career_profile",
@@ -159,7 +159,7 @@ CAREER_PROFILE_ITEMS: list[ChecklistItem] = [
             "section:has-text('학습과정') button[aria-label*='add' i]",
         ],
         popup_close_candidates=["닫기", "취소", "X", "Close"],
-        reference_image="career_profile/10_learning_popup.png",
+        reference_image="career/career_profile/10_learning_popup.png",
     ),
 ]
 
@@ -210,6 +210,8 @@ LMS_PC_ITEMS: list[ChecklistItem] = [
         data_testids=["cube-video", "cube-item-video"],
         semantic_candidates=["Video", "영상"],
         structural_selectors=[
+            "[class*='btn-state-cube']",
+            "button[class*='btn-state-cube']",
             "[class*='cube']:has-text('Video')",
             "li:has-text('Video') a",
             "a[href*='/cube/']",
@@ -582,7 +584,7 @@ CAREER_EXTENDED_ITEMS: list[ChecklistItem] = [
             "a[href*='recommend']",
             "[class*='recommend']",
         ],
-        reference_image="career_extended/01_career_recommend.png",
+        reference_image="career/career_extended/01_career_recommend.png",
     ),
     ChecklistItem(
         service="career_extended",
@@ -598,7 +600,7 @@ CAREER_EXTENDED_ITEMS: list[ChecklistItem] = [
             "[class*='recommend'] [class*='job']",
             "[class*='recommend'] li",
         ],
-        reference_image="career_extended/02_job_preview.png",
+        reference_image="career/career_extended/02_job_preview.png",
     ),
     ChecklistItem(
         service="career_extended",
@@ -615,7 +617,7 @@ CAREER_EXTENDED_ITEMS: list[ChecklistItem] = [
             "button:has-text('더보기')",
             "[class*='explore']",
         ],
-        reference_image="career_extended/03_career_explore.png",
+        reference_image="career/career_extended/03_career_explore.png",
     ),
     ChecklistItem(
         service="career_extended",
@@ -631,7 +633,7 @@ CAREER_EXTENDED_ITEMS: list[ChecklistItem] = [
             "a[href*='my-pick']",
             "[class*='my-pick']",
         ],
-        reference_image="career_extended/04_my_pick.png",
+        reference_image="career/career_extended/04_my_pick.png",
     ),
     ChecklistItem(
         service="career_extended",
@@ -647,7 +649,7 @@ CAREER_EXTENDED_ITEMS: list[ChecklistItem] = [
             "[class*='tab'] button",
             "button[role='tab']",
         ],
-        reference_image="career_extended/05_mypick_job_tab.png",
+        reference_image="career/career_extended/05_mypick_job_tab.png",
     ),
     ChecklistItem(
         service="career_extended",
@@ -664,7 +666,7 @@ CAREER_EXTENDED_ITEMS: list[ChecklistItem] = [
             "button[aria-expanded='false']",
             "[class*='skill'] button",
         ],
-        reference_image="career_extended/06_skill_expand.png",
+        reference_image="career/career_extended/06_skill_expand.png",
     ),
     ChecklistItem(
         service="career_extended",
@@ -674,7 +676,7 @@ CAREER_EXTENDED_ITEMS: list[ChecklistItem] = [
         mode="llm",
         action_type="none",
         page_path="/career/my-pick",
-        reference_image="career_extended/07_learning_path.png",
+        reference_image="career/career_extended/07_learning_path.png",
     ),
 ]
 

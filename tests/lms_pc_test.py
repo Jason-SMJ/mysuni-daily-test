@@ -63,36 +63,126 @@ class LmsPcTestScenario(MultiItemTestBase):
         return False
 
     async def _action_select_cube(self) -> bool:
-        """카드 상세 LNB에서 Video 큐브 클릭."""
+        """카드 상세 페이지 LNB에서 btn-state-cube 클래스 기반으로 Video 큐브 클릭."""
         item = next(i for i in self.CHECKLIST if i.check_item == "큐브 확인")
+
+        # btn-state-cube 클래스 우선 탐색 (모든 프레임 포함)
+        contexts = await self._iter_contexts()
+        for _, ctx in contexts:
+            for selector in [
+                "[class*='btn-state-cube']",
+                "button[class*='btn-state-cube']",
+            ]:
+                try:
+                    loc = ctx.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        await loc.click()
+                        await self.mysuni_page.wait_for_page_loaded()
+                        await self.page.wait_for_timeout(1000)  # 큐브 화면 안정화 대기
+                        return True
+                except Exception:
+                    continue
+
+        # 폴백: 기존 4단계 클릭 전략
         if await self._click_with_priority(item):
             await self.mysuni_page.wait_for_page_loaded()
+            await self.page.wait_for_timeout(1000)  # 큐브 화면 안정화 대기
             return True
         return False
 
     async def _action_play_video(self) -> bool:
         """재생 버튼 클릭 후 중단 버튼 클릭."""
-        item = next(i for i in self.CHECKLIST if i.check_item == "영상 확인")
-        if not await self._click_with_priority(item):
-            return False
+        # 팝업 플레이어 로딩 대기
         await self.page.wait_for_timeout(3000)
 
-        pause_item = ChecklistItem(
-            service="lms_pc",
-            check_item="영상 중단",
-            check_detail="",
-            expected_result="",
-            mode="playwright",
-            action_type="click",
-            data_testids=["player-pause", "btn-pause", "video-pause-button"],
-            semantic_candidates=["중단", "일시정지", "Pause"],
-            structural_selectors=[
-                "button[aria-label*='중단']",
-                "button[aria-label*='pause' i]",
-                "button[aria-label*='일시정지']",
-            ],
-        )
-        await self._click_with_priority(pause_item)
+        # 재생 버튼 선택자 (player-icon 클래스 최우선)
+        play_selectors = [
+            # player-icon 클래스 기반 (팝업토 플레이어)
+            "[class*='player-icon']",
+            "button[class*='player-icon']",
+            # data-testid
+            "[data-testid='player-play']",
+            "[data-testid='btn-play']",
+            "[data-testid='video-play-button']",
+            # aria-label
+            "button[aria-label*='재생']",
+            "button[aria-label*='play' i]",
+            "button[aria-label*='Play']",
+            "button[title*='재생']",
+            "button[title*='play' i]",
+            # class 기반 폴백
+            "button[class*='play']",
+            "[class*='player'] button[class*='play']",
+            "[class*='Player'] button",
+            "[class*='vjs-play-control']",
+            # video 요소 직접 클릭
+            "video",
+        ]
+
+        contexts = await self._iter_contexts()
+        clicked = False
+        for _, ctx in contexts:
+            for selector in play_selectors:
+                try:
+                    loc = ctx.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        await loc.click()
+                        clicked = True
+                        break
+                except Exception:
+                    continue
+            if clicked:
+                break
+
+        # JS 폴백: video 요소에 play() 직접 호출
+        if not clicked:
+            try:
+                played = await self.page.evaluate(
+                    """() => {
+                        const v = document.querySelector('video');
+                        if (v) { v.play(); return true; }
+                        return false;
+                    }"""
+                )
+                clicked = bool(played)
+            except Exception:
+                pass
+
+        if not clicked:
+            return False
+
+        await self.page.wait_for_timeout(3000)
+
+        # 중단(일시정지) 버튼 클릭 (pauser-icon 클래스 최우선)
+        pause_selectors = [
+            # pause-icon 클래스 기반 (팝업토 플레이어)
+            "[class*='pause-icon']",
+            "button[class*='pause-icon']",
+            # data-testid
+            "[data-testid='player-pause']",
+            "[data-testid='btn-pause']",
+            "[data-testid='video-pause-button']",
+            # aria-label
+            "button[aria-label*='중단']",
+            "button[aria-label*='일시정지']",
+            "button[aria-label*='pause' i]",
+            "button[title*='중단']",
+            "button[title*='pause' i]",
+            # class 기반 폴백
+            "button[class*='pause']",
+            "[class*='vjs-play-control']",
+            "video",
+        ]
+        for _, ctx in contexts:
+            for selector in pause_selectors:
+                try:
+                    loc = ctx.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        await loc.click()
+                        break
+                except Exception:
+                    continue
+
         await self.page.wait_for_timeout(1000)
         return True
 
@@ -116,10 +206,9 @@ class LmsPcTestScenario(MultiItemTestBase):
         return False
 
     async def _action_badge_challenge(self) -> bool:
-        """배지 도전 → 스크린샷 → 도전 취소 (상태 복원)."""
-        item = next(i for i in self.CHECKLIST if i.check_item == "배지 확인")
+        """GNB Certification 메뉴 → Badge 탭 → 도전하기 클릭 → 도전중 배지 상세 진입 → 도전취소."""
 
-        # Certification 메뉴로 먼저 이동
+        # Step 1: GNB Certification 메뉴 클릭
         cert_item = ChecklistItem(
             service="lms_pc",
             check_item="certification-nav",
@@ -135,8 +224,95 @@ class LmsPcTestScenario(MultiItemTestBase):
         await self.mysuni_page.wait_for_page_loaded()
         await self.page.wait_for_timeout(1000)
 
-        # 배지 도전 팝업
-        return await self._action_popup(item, strict_testid_only=False)
+        # Step 2: Badge 탭 클릭
+        badge_tab_item = ChecklistItem(
+            service="lms_pc",
+            check_item="badge-tab",
+            check_detail="",
+            expected_result="",
+            mode="playwright",
+            action_type="click",
+            data_testids=["tab-badge", "badge-tab"],
+            semantic_candidates=["Badge", "배지"],
+            structural_selectors=[
+                "button[role='tab']:has-text('Badge')",
+                "button[role='tab']:has-text('배지')",
+                "a[role='tab']:has-text('Badge')",
+                "[class*='tab']:has-text('Badge')",
+            ],
+        )
+        await self._click_with_priority(badge_tab_item)
+        await self.page.wait_for_timeout(1000)
+
+        # Step 3: 도전하기 — 전체 목록에서 "도전하기" 버튼 클릭
+        challenge_ok = False
+        contexts = await self._iter_contexts()
+        for _, ctx in contexts:
+            for selector in [
+                "button:has-text('도전하기')",
+                "button:has-text('도전 하기')",
+                "[class*='badge'] button:has-text('도전')",
+            ]:
+                try:
+                    loc = ctx.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        await loc.click()
+                        await self.page.wait_for_timeout(1500)
+                        challenge_ok = True
+                        break
+                except Exception:
+                    continue
+            if challenge_ok:
+                break
+
+        # Step 4: 도전 취소 — 전체 목록에서 "도전중" 버튼 클릭 → 상세 진입 → "도전취소" 클릭
+        cancel_ok = False
+        # 도전하기 후 팝업/모달이 열렸을 수 있으므로 닫기 처리
+        for close_text in ["닫기", "확인", "취소"]:
+            try:
+                close_btn = self.page.locator(f"button:has-text('{close_text}')").last
+                if await close_btn.count() > 0 and await close_btn.is_visible():
+                    await close_btn.click()
+                    await self.page.wait_for_timeout(500)
+                    break
+            except Exception:
+                pass
+
+        await self.page.wait_for_timeout(500)
+
+        for _, ctx in contexts:
+            for selector in [
+                "button:has-text('도전중')",
+                "[class*='badge'] button:has-text('도전중')",
+            ]:
+                try:
+                    loc = ctx.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        await loc.click()
+                        await self.mysuni_page.wait_for_page_loaded()
+                        await self.page.wait_for_timeout(1000)
+                        # 상세 화면에서 "도전취소" 버튼 클릭
+                        cancel_btn = self.page.locator(
+                            "button:has-text('도전취소'), button:has-text('도전 취소')"
+                        ).first
+                        if await cancel_btn.count() > 0 and await cancel_btn.is_visible():
+                            await cancel_btn.click()
+                            await self.page.wait_for_timeout(1000)
+                            # 확인 다이얼로그 수락
+                            confirm_btn = self.page.locator(
+                                "button:has-text('확인'), button:has-text('예')"
+                            ).first
+                            if await confirm_btn.count() > 0 and await confirm_btn.is_visible():
+                                await confirm_btn.click()
+                                await self.page.wait_for_timeout(500)
+                            cancel_ok = True
+                        break
+                except Exception:
+                    continue
+            if cancel_ok:
+                break
+
+        return challenge_ok or cancel_ok
 
     async def _action_community_post(self) -> bool:
         """게시글 작성 → 목록 확인 → 상세 이동 → 삭제 (상태 복원)."""
@@ -291,6 +467,24 @@ class LmsPcTestScenario(MultiItemTestBase):
         await self._click_with_priority(profile_item)
         await self.page.wait_for_timeout(500)
 
+        # lg-out 클래스 우선 탐색
+        contexts = await self._iter_contexts()
+        for _, ctx in contexts:
+            for selector in [
+                "[class*='lg-out']",
+                "a[class*='lg-out']",
+                "button[class*='lg-out']",
+            ]:
+                try:
+                    loc = ctx.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        await loc.click()
+                        await self.mysuni_page.wait_for_page_loaded()
+                        return True
+                except Exception:
+                    continue
+
+        # 폴백: 기존 4단계 클릭 전략
         item = next(i for i in self.CHECKLIST if i.check_item == "로그아웃")
         if await self._click_with_priority(item):
             await self.mysuni_page.wait_for_page_loaded()
