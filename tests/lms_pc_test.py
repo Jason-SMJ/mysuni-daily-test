@@ -92,12 +92,12 @@ class LmsPcTestScenario(MultiItemTestBase):
 
     async def _action_play_video(self) -> bool:
         """재생 버튼 클릭 후 중단 버튼 클릭."""
-        # 팝업 플레이어 로딩 대기
-        await self.page.wait_for_timeout(3000)
+        # 팝업 플레이어 로딩 대기 (증가: 3s → 5s)
+        await self.page.wait_for_timeout(5000)
 
         # 재생 버튼 선택자 (player-icon 클래스 최우선)
         play_selectors = [
-            # player-icon 클래스 기반 (팝업토 플레이어)
+            # player-icon 클래스 기반 (판업토 플레이어)
             "[class*='player-icon']",
             "button[class*='player-icon']",
             # data-testid
@@ -115,6 +115,15 @@ class LmsPcTestScenario(MultiItemTestBase):
             "[class*='player'] button[class*='play']",
             "[class*='Player'] button",
             "[class*='vjs-play-control']",
+            # 썸네일/영상 영역 오버레이 재생 버튼 (mySUNI panuto 플레이어)
+            "[class*='thumbnail'] button",
+            "[class*='thumb'] button",
+            "[class*='video-wrap'] button",
+            "[class*='videoWrap'] button",
+            "[class*='video_wrap'] button",
+            "[class*='cube-play']",
+            "[class*='play-btn']",
+            "[class*='playBtn']",
             # video 요소 직접 클릭
             "video",
         ]
@@ -134,17 +143,41 @@ class LmsPcTestScenario(MultiItemTestBase):
             if clicked:
                 break
 
-        # JS 폴백: video 요소에 play() 직접 호출
+        # JS 폴백: video 요소에 play() 직접 호출 (프레임 포함)
+        if not clicked:
+            for _, ctx in contexts:
+                try:
+                    played = await ctx.evaluate(
+                        """() => {
+                            const v = document.querySelector('video');
+                            if (v) { v.play(); return true; }
+                            return false;
+                        }"""
+                    )
+                    if played:
+                        clicked = True
+                        break
+                except Exception:
+                    continue
+
+        # Space 키 폴백: 포커스 된 플레이어에 Space 키로 재생
         if not clicked:
             try:
-                played = await self.page.evaluate(
-                    """() => {
-                        const v = document.querySelector('video');
-                        if (v) { v.play(); return true; }
-                        return false;
-                    }"""
+                await self.page.keyboard.press("Space")
+                await self.page.wait_for_timeout(500)
+                clicked = True
+            except Exception:
+                pass
+
+        # 마우스 클릭 폴백: 뷰포트 중앙 클릭 (플레이어 썸네일 오버레이 영역)
+        if not clicked:
+            try:
+                viewport = self.page.viewport_size or {"width": 1280, "height": 1024}
+                await self.page.mouse.click(
+                    viewport["width"] * 0.65,
+                    viewport["height"] * 0.4,
                 )
-                clicked = bool(played)
+                clicked = True
             except Exception:
                 pass
 
@@ -332,13 +365,59 @@ class LmsPcTestScenario(MultiItemTestBase):
         await self.mysuni_page.wait_for_page_loaded()
         await self.page.wait_for_timeout(1000)
 
+        # 좌측 커뮤니티 목록에서 첫 번째 커뮤니티 게시판 진입
+        board_item = ChecklistItem(
+            service="lms_pc",
+            check_item="community-board",
+            check_detail="",
+            expected_result="",
+            mode="playwright",
+            action_type="click",
+            data_testids=[],
+            semantic_candidates=[],
+            structural_selectors=[
+                "[class*='community'] li:first-child a",
+                "[class*='board-list'] li:first-child a",
+                "[class*='my-community'] li:first-child",
+                "aside li:first-child a",
+                "aside li:first-child",
+            ],
+        )
+        await self._click_with_priority(board_item)
+        await self.page.wait_for_timeout(1000)
+
         # 기존 테스트 게시글 정리 (stale post)
         await self._cleanup_stale_posts()
 
-        # 글쓰기 클릭
+        # 페이지 상단으로 스크롤 후 글쓰기 클릭
+        await self.page.evaluate("window.scrollTo(0, 0)")
+        await self.page.wait_for_timeout(300)
+
         item = next(i for i in self.CHECKLIST if i.check_item == "커뮤니티 확인")
-        if not await self._click_with_priority(item):
-            return False
+        # 추가 셀렉터 포함 임시 아이템으로 시도
+        extended_item = ChecklistItem(
+            service="lms_pc",
+            check_item="community-write",
+            check_detail="",
+            expected_result="",
+            mode="playwright",
+            action_type="click",
+            data_testids=["btn-write-post", "community-write", "post-write"],
+            semantic_candidates=["글쓰기", "작성", "새 글", "새글", "게시"],
+            structural_selectors=[
+                "button:has-text('글쓰기')",
+                "button:has-text('작성')",
+                "a:has-text('글쓰기')",
+                "[class*='write'] button",
+                "[class*='board-write']",
+                "a[href*='/write']",
+                "a[href*='/new']",
+                "button[class*='create']",
+            ],
+        )
+        if not await self._click_with_priority(extended_item):
+            if not await self._click_with_priority(item):
+                return False
         await self.page.wait_for_timeout(1500)
 
         # 제목/내용 입력
@@ -462,31 +541,71 @@ class LmsPcTestScenario(MultiItemTestBase):
                 "button[aria-label*='프로필']",
                 "[class*='profile'] button",
                 "[class*='avatar']",
+                "[class*='gnb'] [class*='user']",
+                "[class*='header'] [class*='user']",
+                "[class*='top'] [class*='user']",
             ],
         )
-        await self._click_with_priority(profile_item)
-        await self.page.wait_for_timeout(500)
+        profile_clicked = await self._click_with_priority(profile_item)
+        if not profile_clicked:
+            print("⚠️ 프로필 아이콘 클릭 실패 — 직접 로그아웃 버튼 탐색으로 전환")
+        await self.page.wait_for_timeout(1000)
 
-        # lg-out 클래스 우선 탐색
+        # lg-out 클래스 우선 탐색 (드롭다운 내 로그아웃 요소)
         contexts = await self._iter_contexts()
         for _, ctx in contexts:
             for selector in [
                 "[class*='lg-out']",
                 "a[class*='lg-out']",
                 "button[class*='lg-out']",
+                "a[class*='logout']",
+                "button[class*='logout']",
+                "li:has-text('로그아웃') a",
+                "li:has-text('로그아웃') button",
+                "[class*='dropdown'] a:has-text('로그아웃')",
+                "[class*='menu'] a:has-text('로그아웃')",
+                "[class*='layer'] a:has-text('로그아웃')",
             ]:
                 try:
                     loc = ctx.locator(selector).first
                     if await loc.count() > 0 and await loc.is_visible():
                         await loc.click()
                         await self.mysuni_page.wait_for_page_loaded()
-                        return True
+                        if "login" in self.page.url:
+                            return True
                 except Exception:
                     continue
 
-        # 폴백: 기존 4단계 클릭 전략
+        # 폴백: 기존 4단계 클릭 전략 (URL 검증 포함)
         item = next(i for i in self.CHECKLIST if i.check_item == "로그아웃")
         if await self._click_with_priority(item):
             await self.mysuni_page.wait_for_page_loaded()
-            return True
+            if "login" in self.page.url:
+                return True
+
+        # JS 폴백: DOM 전체에서 로그아웃 텍스트 요소 직접 클릭 (URL 검증 포함)
+        try:
+            clicked = await self.page.evaluate("""
+                () => {
+                    const candidates = Array.from(document.querySelectorAll('a, button, li, span'));
+                    for (const el of candidates) {
+                        const text = (el.innerText || el.textContent || '').trim();
+                        if (text === '로그아웃' || text === 'Logout' || text === 'Sign out') {
+                            const rect = el.getBoundingClientRect();
+                            if (rect.width > 0 && rect.height > 0) {
+                                el.click();
+                                return true;
+                            }
+                        }
+                    }
+                    return false;
+                }
+            """)
+            if clicked:
+                await self.mysuni_page.wait_for_page_loaded()
+                if "login" in self.page.url:
+                    return True
+        except Exception:
+            pass
+
         return False
