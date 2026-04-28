@@ -155,11 +155,11 @@ class BaseTest:
             llm_response: LLM 응답
             screenshot_path: 스크린샷 경로
         """
-        self.slack_notifier.send_failure_notification(
-            scenario_name, 
-            llm_response, 
-            screenshot_path
-        )
+        # self.slack_notifier.send_failure_notification(
+        #     scenario_name,
+        #     llm_response,
+        #     screenshot_path
+        # )
 
     def notify_failure_item(
         self,
@@ -173,16 +173,16 @@ class BaseTest:
         screenshot_path: Path,
     ) -> None:
         """요청 포맷에 맞춘 항목 단위 상세 실패 알림을 전송합니다."""
-        self.slack_notifier.send_failure_item_notification(
-            scenario_key=scenario_key,
-            item_id=item_id,
-            item_name=item_name,
-            action_type=action_type,
-            result=result,
-            summary=self._summarize_reason(llm_response),
-            llm_response=llm_response,
-            screenshot_path=screenshot_path,
-        )
+        # self.slack_notifier.send_failure_item_notification(
+        #     scenario_key=scenario_key,
+        #     item_id=item_id,
+        #     item_name=item_name,
+        #     action_type=action_type,
+        #     result=result,
+        #     summary=self._summarize_reason(llm_response),
+        #     llm_response=llm_response,
+        #     screenshot_path=screenshot_path,
+        # )
     
     async def run(self) -> bool:
         """

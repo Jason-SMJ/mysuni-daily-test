@@ -34,7 +34,7 @@ class Settings:
         return default
     
     def __init__(self, config_path: str = "config/config.yaml"):
-        load_dotenv()
+        load_dotenv(override=True)
         self.config = self._load_yaml_config(config_path)
     
     def _load_yaml_config(self, path: str) -> Dict[str, Any]:
@@ -93,7 +93,8 @@ class Settings:
             "headless": headless,
             "viewport": browser_cfg.get("viewport", {"width": 1280, "height": 1024}),
             "timeout": browser_cfg.get("timeout", 30000),
-            "download_dir": browser_cfg.get("download_dir", "downloads")
+            "download_dir": browser_cfg.get("download_dir", "downloads"),
+            "mobile_device": browser_cfg.get("mobile_device", "iPhone 12"),
         }
     
     def get_test_pages(self) -> Dict[str, str]:
