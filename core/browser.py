@@ -41,11 +41,26 @@ class BrowserManager:
         page = await context.new_page()
         return page
 
-    async def new_mobile_page(self, device_name: str = "iPhone 12") -> Page:
+    async def new_mobile_page(
+        self,
+        device_name: str = "iPhone 12",
+        user_agent: str | None = None,
+    ) -> Page:
+        """모바일 페이지 생성.
+
+        user_agent가 지정되면 device 에뮬레이션 없이 해당 UA만 설정한다.
+        """
         if not self.browser:
             await self.launch()
-        device = self.playwright.devices[device_name]
-        context = await self.browser.new_context(**device, accept_downloads=True)
+        if user_agent:
+            context = await self.browser.new_context(
+                user_agent=user_agent,
+                viewport=self.viewport,
+                accept_downloads=True,
+            )
+        else:
+            device = self.playwright.devices[device_name]
+            context = await self.browser.new_context(**device, accept_downloads=True)
         return await context.new_page()
 
     async def close(self):

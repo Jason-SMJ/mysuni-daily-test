@@ -538,12 +538,13 @@ class LmsPcTestScenario(MultiItemTestBase):
             data_testids=["profile-icon", "user-avatar", "btn-profile"],
             semantic_candidates=["프로필", "Profile"],
             structural_selectors=[
-                "button[aria-label*='프로필']",
+                "[class*='user_btn']",
                 "[class*='profile'] button",
                 "[class*='avatar']",
                 "[class*='gnb'] [class*='user']",
                 "[class*='header'] [class*='user']",
                 "[class*='top'] [class*='user']",
+                "button[aria-label*='프로필']",
             ],
         )
         profile_clicked = await self._click_with_priority(profile_item)

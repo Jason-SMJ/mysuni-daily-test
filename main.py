@@ -128,9 +128,13 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
         page = await browser_manager.new_page()
         mysuni_page = MySuniPage(page, mysuni_config["base_url"])
 
-        # 모바일 에뮬레이션 페이지 (LMS_Mobile 전용)
+        # 모바일 페이지 (LMS_Mobile 전용) — mySUNI/3.1 UA 사용
+        mobile_ua = browser_config.get("mobile_user_agent", "mySUNI/3.1")
         mobile_device = browser_config.get("mobile_device", "iPhone 12")
-        mobile_page = await browser_manager.new_mobile_page(mobile_device)
+        mobile_page = await browser_manager.new_mobile_page(
+            device_name=mobile_device,
+            user_agent=mobile_ua if mobile_ua else None,
+        )
         mobile_mysuni_page = MySuniPage(mobile_page, mysuni_config["base_url"])
         
         # 4. MySuni 로그인
@@ -169,6 +173,15 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
 
         lms_base_url = mysuni_config["base_url"].rstrip("/")
         career_base_url = mysuni_config["career_url"].rstrip("/")
+
+        # 데스크탑 로그인 세션 쿠키를 모바일 컨텍스트에 복사
+        # (mySUNI/3.1 UA는 SSO 웹 로그인 불가 → 세션 주입으로 우회)
+        try:
+            main_cookies = await page.context.cookies()
+            await mobile_page.context.add_cookies(main_cookies)
+            print(f"🍪 세션 쿠키 {len(main_cookies)}개 모바일 컨텍스트에 주입 완료")
+        except Exception as e:
+            print(f"⚠️ 모바일 쿠키 주입 실패: {e}")
 
         # 로그인 이후 기본 base_url은 career_url로 전환 (기존 Career 시나리오 유지)
         mysuni_page.base_url = career_base_url
@@ -212,7 +225,10 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                     mobile_page, mobile_mysuni_page, screenshot_manager, vision_client, slack_notifier,
                     mobile_id=mysuni_config["id"],
                     mobile_password=mysuni_config["password"],
-                ),  # credentials는 체크리스트 2번(로그인) 항목에서 사용
+                    main_page=page,
+                    main_mysuni_page=mysuni_page,
+                    lms_base_url=lms_base_url,
+                ),
             ),
             # ── Career Profile (기존) ────────────────────────
             ScenarioPlan(
@@ -249,7 +265,9 @@ async def main(selected_scenario: str | None = None, selected_item: int | None =
                 skip_reason=scenario_config.get("one_id", {}).get("skip_reason", "미활성화"),
                 base_url=lms_base_url,
                 factory=lambda: OneIdTestScenario(
-                    page, mysuni_page, screenshot_manager, vision_client, slack_notifier
+                    page, mysuni_page, screenshot_manager, vision_client, slack_notifier,
+                    user_id=mysuni_config["id"],
+                    user_password=mysuni_config["password"],
                 ),
             ),
             # ── 기존 단순 Career 시나리오 ─────────────────────

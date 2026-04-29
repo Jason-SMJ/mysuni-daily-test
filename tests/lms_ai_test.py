@@ -106,24 +106,58 @@ class LmsAiTestScenario(MultiItemTestBase):
     # ──────────────────────────────────────────────
 
     async def _action_open_assistant(self) -> bool:
-        """학습도우미 아이콘 클릭하여 패널 열기."""
+        """홈 첫 번째 카드 → 카드 상세 진입 → sunibot 아이콘 노출 확인 및 클릭."""
+
+        # Step 1: 홈 페이지에서 첫 번째 카드 클릭 → 카드 상세 페이지 이동
+        card_item = ChecklistItem(
+            service="lms_ai",
+            check_item="first-card",
+            check_detail="",
+            expected_result="",
+            mode="playwright",
+            action_type="click",
+            data_testids=["card-item", "learning-card"],
+            semantic_candidates=[],
+            structural_selectors=[
+                "[class*='card'] a",
+                "[class*='Card'] a",
+                "a[href*='/card/']",
+            ],
+        )
+        if not await self._click_with_priority(card_item):
+            print("⚠️ 첫 번째 카드 클릭 실패")
+            return False
+        await self.mysuni_page.wait_for_page_loaded()
+        await self.page.wait_for_timeout(1500)
+
+        # Step 2: 카드 상세 페이지에서 sunibot 클래스 아이콘 탐색 및 클릭
+        contexts = await self._iter_contexts()
+        for _, ctx in contexts:
+            for selector in [
+                "[class*='sunibot']",
+                "button[class*='sunibot']",
+                "a[class*='sunibot']",
+                "[class*='sunibot'] button",
+            ]:
+                try:
+                    loc = ctx.locator(selector).first
+                    if await loc.count() > 0 and await loc.is_visible():
+                        await loc.click()
+                        await self.page.wait_for_timeout(2000)
+                        self._assistant_opened = True
+                        print(f"✅ sunibot 아이콘 클릭 성공: {selector}")
+                        return True
+                except Exception:
+                    continue
+
+        print("⚠️ sunibot 아이콘 미탐색 — 스펙 폴백 셀렉터 시도")
+        # Step 3: 폴백 — 스펙에 정의된 기존 셀렉터 시도
         item = next(i for i in self.CHECKLIST if i.check_item == "학습도우미 실행")
-        clicked = await self._click_with_priority(item)
-        if clicked:
+        if await self._click_with_priority(item):
             await self.page.wait_for_timeout(2000)
-            # 패널이 실제로 열렸는지 확인
-            panel = self.page.locator(
-                "[class*='assistant'], [class*='chatbot'], [class*='chat-panel']"
-            ).first
-            try:
-                if await panel.count() > 0 and await panel.is_visible():
-                    self._assistant_opened = True
-                    return True
-            except Exception:
-                pass
-            # 아이콘 클릭은 성공했으나 패널 감지 실패 시에도 열린 것으로 간주
             self._assistant_opened = True
             return True
+
         return False
 
     async def _action_proactive_display(self) -> bool:
@@ -147,12 +181,12 @@ class LmsAiTestScenario(MultiItemTestBase):
         return clicked
 
     async def _action_chat_course(self) -> bool:
-        """발화 창에 '파이썬 강의의 찾아줘' 입력."""
-        return await self._send_chat_message("파이썬 강의의 찾아줘")
+        """발화 창에 '파이썬 강의 찾아줘' 입력 후 LLM 답변 15초 대기."""
+        return await self._send_chat_message("파이썬 강의 찾아줘", wait_ms=15000)
 
     async def _action_chat_knowledge(self) -> bool:
-        """발화 창에 '감수성이 뭐야?' 입력."""
-        return await self._send_chat_message("감수성이 뭐야?")
+        """발화 창에 '감수성이 뭐야?' 입력 후 LLM 답변 15초 대기."""
+        return await self._send_chat_message("감수성이 뭐야?", wait_ms=15000)
 
     async def _action_misc_controls(self) -> bool:
         """새 대화 버튼 등 기타 기능 클릭."""
@@ -162,27 +196,39 @@ class LmsAiTestScenario(MultiItemTestBase):
             await self.page.wait_for_timeout(1000)
         return clicked
 
-    async def _send_chat_message(self, message: str) -> bool:
-        """채팅 입력창에 메시지를 입력하고 전송한다."""
+    async def _send_chat_message(self, message: str, wait_ms: int = 3000) -> bool:
+        """채팅 입력창에 메시지를 입력하고 전송한다.
+
+        Args:
+            message: 전송할 발화 텍스트
+            wait_ms: 전송 후 LLM 답변 대기 시간(ms). 최소 3000 권장.
+        """
+        # chat_textarea 클래스 우선 탐색 후 스펙 셀렉터 폴백
+        priority_selectors = [
+            "[class*='chat_textarea']",
+            "textarea[class*='chat_textarea']",
+        ]
         input_item = next(
             (i for i in self.CHECKLIST if i.check_item in ("일반발화(과정탐색)", "일반발화(지식검색)")),
             None,
         )
-        if input_item is None:
-            return False
+        spec_selectors = (
+            input_item.structural_selectors + [f"[data-testid='{t}']" for t in input_item.data_testids]
+            if input_item
+            else []
+        )
+        all_selectors = priority_selectors + spec_selectors
 
         contexts = await self._iter_contexts()
         for _, ctx in contexts:
-            for selector in input_item.structural_selectors + [
-                f"[data-testid='{t}']" for t in input_item.data_testids
-            ]:
+            for selector in all_selectors:
                 locator = ctx.locator(selector).first
                 try:
                     if await locator.count() > 0 and await locator.is_visible():
                         await locator.click()
                         await locator.fill(message)
                         await self.page.keyboard.press("Enter")
-                        await self.page.wait_for_timeout(3000)
+                        await self.page.wait_for_timeout(wait_ms)
                         return True
                 except Exception:
                     continue

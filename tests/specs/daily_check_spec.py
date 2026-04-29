@@ -344,6 +344,9 @@ LMS_AI_ITEMS: list[ChecklistItem] = [
         data_testids=["ai-assistant-button", "learning-helper-icon", "chatbot-button"],
         semantic_candidates=["학습도우미", "AI 도우미", "도우미"],
         structural_selectors=[
+            "[class*='sunibot']",
+            "button[class*='sunibot']",
+            "[class*='sunibot'] button",
             "[class*='assistant'] button",
             "[class*='chatbot'] button",
             "button[aria-label*='도우미']",
@@ -381,7 +384,7 @@ LMS_AI_ITEMS: list[ChecklistItem] = [
     ChecklistItem(
         service="lms_ai",
         check_item="일반발화(과정탐색)",
-        check_detail="발화 창에 '파이썬 강의의 찾아줘' 입력하여 관련된 카드목록이 표시되는지 점검",
+        check_detail="발화 창에 '파이썬 강의 찾아줘' 입력하여 관련된 카드목록이 표시되는지 점검",
         expected_result="mySUNI에 등록된 파이썬 관련 과정 목록 표시 확인한다.",
         mode="llm",
         action_type="click",
@@ -389,6 +392,8 @@ LMS_AI_ITEMS: list[ChecklistItem] = [
         data_testids=["chat-input", "assistant-input", "message-input"],
         semantic_candidates=["메시지 입력", "질문을 입력"],
         structural_selectors=[
+            "[class*='chat_textarea']",
+            "textarea[class*='chat_textarea']",
             "[class*='chat'] input",
             "[class*='assistant'] input",
             "textarea[placeholder*='입력']",
@@ -407,6 +412,8 @@ LMS_AI_ITEMS: list[ChecklistItem] = [
         data_testids=["chat-input", "assistant-input", "message-input"],
         semantic_candidates=["메시지 입력", "질문을 입력"],
         structural_selectors=[
+            "[class*='chat_textarea']",
+            "textarea[class*='chat_textarea']",
             "[class*='chat'] input",
             "[class*='assistant'] input",
             "textarea[placeholder*='입력']",
@@ -770,10 +777,12 @@ ONE_ID_ITEMS: list[ChecklistItem] = [
         expected_result="내정보 페이지에서 회원정보, 구성원정보, 직무정보가 노출된다.",
         mode="llm",
         action_type="navigate",
-        page_path="/suni-main/mypage?page=/profile-setting",
+        page_path="/suni-main/my-training/my-page/MyProfile",
         data_testids=["btn-info-setting", "info-setting"],
-        semantic_candidates=["정보설정", "내정보", "회원정보"],
+        semantic_candidates=["정보 설정", "정보설정", "내정보", "회원정보"],
         structural_selectors=[
+            "button:has-text('정보 설정')",
+            "a:has-text('정보 설정')",
             "button:has-text('정보설정')",
             "a:has-text('정보설정')",
         ],
