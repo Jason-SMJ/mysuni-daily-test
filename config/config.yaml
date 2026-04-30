@@ -33,7 +33,7 @@ browser:
   timeout: 30000
   download_dir: "/tmp/downloads"  # ZCP 환경의 임시 디렉토리
   mobile_device: "iPhone 12"     # mobile_user_agent 미설정 시 사용할 디바이스 에뮬레이션
-  mobile_user_agent: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
+  mobile_user_agent: "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36 mySUNI/3.1"
 
 test:
   # 테스트할 페이지 URL 매핑
