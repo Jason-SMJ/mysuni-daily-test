@@ -1,41 +1,37 @@
 """LMS Mobile 일일점검 시나리오 (10항목).
 
-UA 분리 전략:
-  - 1번(앱 설치): mySUNI/3.1 UA 임시 컨텍스트 — 앱 설치 안내 UI 확인
-  - 2~10번: 표준 모바일 UA(mySUNI 없음) + main.py 주입 세션 쿠키 — LMS 웹 점검
+모든 항목에 동일한 Android + mySUNI/3.1 UA 사용.
+UA: Mozilla/5.0 (Linux; Android 13; ...) Chrome/116.0.0.0 Mobile Safari/537.36 mySUNI/3.1
+진입 URL: https://mysuni.sk.com/suni-mobile/
 """
 
-from core.browser import MySuniPage
 from tests.multi_item_base import MultiItemTestBase
 from tests.specs.daily_check_spec import ChecklistItem, LMS_MOBILE_ITEMS
 
-MYSUNI_APP_UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36 mySUNI/3.1"
+ANDROID_MYSUNI_UA = (
+    "Mozilla/5.0 (Linux; Android 13; Pixel 7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/116.0.0.0 Mobile Safari/537.36 mySUNI/3.1"
+)
+SUNI_MOBILE_PATH = "/suni-mobile/"
 
 
 class LmsMobileTestScenario(MultiItemTestBase):
-    """LMS Mobile 10개 항목 점검 (모바일 에뮬레이션)."""
+    """LMS Mobile 10개 항목 점검 (Android + mySUNI/3.1 UA 단일 컨텍스트)."""
 
     SCENARIO_NAME = "LMS Mobile 일일점검"
     SCENARIO_KEY = "lms_mobile"
     PAGE_PATH = "/mobile/app/install"
     CHECKLIST = LMS_MOBILE_ITEMS
 
-    def __init__(
-        self,
-        *args,
-        mobile_id: str = "",
-        mobile_password: str = "",
-        main_page=None,
-        main_mysuni_page=None,
-        lms_base_url: str = "",
-        **kwargs,
-    ):
+    def __init__(self, *args, mobile_id: str = "", mobile_password: str = "", **kwargs):
+        # 구형 파라미터 호환성 유지
+        kwargs.pop("main_page", None)
+        kwargs.pop("main_mysuni_page", None)
+        kwargs.pop("lms_base_url", None)
         super().__init__(*args, **kwargs)
         self._mobile_id = mobile_id
         self._mobile_password = mobile_password
-        self._main_page = main_page          # main.py 로그인 세션 페이지 (2~10번용)
-        self._main_mysuni_page = main_mysuni_page
-        self._lms_base_url = lms_base_url
 
     def _build_action_map(self):
         return {
@@ -52,43 +48,15 @@ class LmsMobileTestScenario(MultiItemTestBase):
         }
 
     async def run(self) -> bool:
-        """UA 분리 실행:
-        1번(앱 설치)은 mySUNI/3.1 임시 컨텍스트, 2~10번은 표준 모바일 UA 사용.
-        """
+        """단일 Android + mySUNI/3.1 UA 컨텍스트로 10개 항목 순차 점검."""
         print(f"🚀 {self.SCENARIO_NAME} 시작")
-
-        mobile_viewport = self.page.viewport_size or {"width": 1280, "height": 1024}
-
-        # 1번(앱 설치): mySUNI/3.1 UA 임시 컨텍스트
-        mysuni_ctx = await self.page.context.browser.new_context(
-            user_agent=MYSUNI_APP_UA, viewport=mobile_viewport
-        )
-        mysuni_page = await mysuni_ctx.new_page()
-        mysuni_mysuni_page = MySuniPage(mysuni_page, self.mysuni_page.base_url)
-
-        # 2~10번: main.py 로그인 세션 페이지 직접 사용 (모바일 권한 페이지 우회)
-        web_page = self._main_page
-        web_mysuni_page = self._main_mysuni_page
-        if web_page is None or web_mysuni_page is None:
-            print("⚠️ main_page 미전달 — mobile_page 폴백 사용")
-            web_page = self.page
-            web_mysuni_page = self.mysuni_page
-        else:
-            # 메인 페이지 base_url을 LMS로 전환
-            web_mysuni_page.base_url = self._lms_base_url or self.mysuni_page.base_url
-            print(f"🌐 메인 페이지 base_url → {web_mysuni_page.base_url}")
-
-        original_page = self.page
-        original_mysuni_page = self.mysuni_page
+        print(f"🤖 UA: {ANDROID_MYSUNI_UA}")
 
         try:
-            # 1번용 앱 설치 페이지 이동 (mySUNI UA)
-            await mysuni_mysuni_page.goto_page(self.PAGE_PATH)
-            await mysuni_mysuni_page.wait_for_page_loaded()
-
-            # 2~10번용 초기 페이지 이동 (메인 로그인 세션 → LMS 메인)
-            await web_mysuni_page.goto_page("/")
-            await web_mysuni_page.wait_for_page_loaded()
+            # 앱 설치 페이지로 초기 이동 (1번 준비)
+            if not await self.mysuni_page.goto_page(self.PAGE_PATH):
+                return False
+            await self.mysuni_page.wait_for_page_loaded()
 
             action_map = self._build_action_map()
             indexed_items = list(enumerate(self.CHECKLIST, start=1))
@@ -106,15 +74,6 @@ class LmsMobileTestScenario(MultiItemTestBase):
             failed_items: list[str] = []
             for order, (idx, item) in enumerate(indexed_items, start=1):
                 print(f"\n[{order}/{len(indexed_items)}] {item.check_item}")
-
-                # 1번만 mySUNI UA, 나머지는 메인 로그인 세션 페이지
-                if item.check_item == "앱 설치":
-                    self.page = mysuni_page
-                    self.mysuni_page = mysuni_mysuni_page
-                else:
-                    self.page = web_page
-                    self.mysuni_page = web_mysuni_page
-
                 ok, _ = await self._run_item(idx, item, action_map.get(item.check_item))
                 await self._post_item_hook(item)
                 if item.action_type == "popup":
@@ -133,10 +92,24 @@ class LmsMobileTestScenario(MultiItemTestBase):
             print(f"❌ {self.SCENARIO_NAME} 실패: {e}")
             return False
 
-        finally:
-            self.page = original_page
-            self.mysuni_page = original_mysuni_page
-            await mysuni_ctx.close()
+    # ──────────────────────────────────────────────
+    # 공통 유틸
+    # ──────────────────────────────────────────────
+
+    async def _handle_aos_access_auth(self) -> bool:
+        """sso/aos-access-auth 권한 동의 페이지 감지 시 확인 클릭."""
+        if "aos-access-auth" in self.page.url or "sso" in self.page.url:
+            confirm_btn = self.page.locator("button:has-text('확인')").first
+            try:
+                if await confirm_btn.count() > 0 and await confirm_btn.is_visible():
+                    print("📋 AOS 접근 권한 동의 페이지 감지 — 확인 클릭")
+                    await confirm_btn.click()
+                    await self.mysuni_page.wait_for_page_loaded()
+                    await self.page.wait_for_timeout(2000)
+                    return True
+            except Exception:
+                pass
+        return False
 
     # ──────────────────────────────────────────────
     # 사전 동작 메서드
@@ -144,54 +117,45 @@ class LmsMobileTestScenario(MultiItemTestBase):
 
     async def _action_app_install(self) -> bool:
         """앱 설치 안내 페이지 UI 노출 확인."""
-        # 이미 goto_page로 이동했으므로 UI 확인만
         install_btn = self.page.locator(
-            "a[href*='download'], button:has-text('다운로드'), button:has-text('설치')"
+            "a[href*='download'], button:has-text('앱 다운로드'), button:has-text('다운로드')"
         ).first
         try:
             return await install_btn.count() > 0
         except Exception:
             return False
 
-    async def _dismiss_permission_page(self) -> bool:
-        """모바일 앱 접근 권한 동의 페이지가 표시되면 확인 클릭하여 통과한다.
-
-        표준 모바일 UA에서는 확인 클릭 후 LMS 콘텐츠로 이동한다.
-        서버가 세션에 동의 완료 플래그를 저장하므로 이후 이동에는 나타나지 않는다.
-        """
-        try:
-            confirm_btn = self.page.locator("button:has-text('확인')").first
-            if await confirm_btn.count() > 0 and await confirm_btn.is_visible():
-                perm_text = self.page.locator("text=접근 권한").first
-                if await perm_text.count() > 0:
-                    print("📋 앱 접근 권한 동의 페이지 감지 — 확인 클릭")
-                    await confirm_btn.click()
-                    await self.mysuni_page.wait_for_page_loaded()
-                    await self.page.wait_for_timeout(2000)
-                    return True
-        except Exception:
-            pass
-        return False
-
     async def _action_login(self) -> bool:
-        """데스크탑 UA + 세션 쿠키로 LMS 메인 진입 확인.
-
-        데스크탑 컨텍스트는 모바일 권한 페이지가 나타나지 않으므로 바로 LMS 메인에 접근한다.
-        """
-        await self.mysuni_page.goto_page("/")
+        """/suni-mobile/ 진입 → AOS 권한 동의 → SSO 세션 인증 완료 대기 → LMS 도달 확인."""
+        await self.mysuni_page.goto_page(SUNI_MOBILE_PATH)
         await self.mysuni_page.wait_for_page_loaded()
         await self.page.wait_for_timeout(2000)
+
+        # AOS 접근 권한 동의 처리
+        await self._handle_aos_access_auth()
+
+        # SSO 세션 인증 리다이렉트 완료 대기 (sid-auth → LMS)
+        for _ in range(15):
+            url = self.page.url
+            if "sid-auth.mysuni.com" in url or "about:blank" in url:
+                print(f"⏳ SSO 리다이렉트 대기 중... ({url[:60]})")
+                await self.page.wait_for_timeout(2000)
+            else:
+                break
+
+        await self.page.wait_for_timeout(2000)
+        final_url = self.page.url
+        print(f"✅ 최종 URL: {final_url}")
 
         # 로그인 폼이 없으면 인증 상태로 판단
         try:
             login_form = self.page.locator("#user-login-id").first
             if await login_form.count() > 0 and await login_form.is_visible():
-                print("⚠️ 로그인 페이지 노출 — 세션 쿠키 주입 실패")
+                print("⚠️ 로그인 페이지 노출 — 인증 실패")
                 return False
         except Exception:
             pass
 
-        print("✅ 데스크탑 컨텍스트 + 세션 쿠키로 LMS 메인 진입 성공")
         return True
 
     async def _action_select_card(self) -> bool:
@@ -229,6 +193,7 @@ class LmsMobileTestScenario(MultiItemTestBase):
             structural_selectors=[
                 "button[aria-label*='중단']",
                 "button[aria-label*='pause' i]",
+                "[class*='pause-icon']",
             ],
         )
         await self._click_with_priority(pause_item)
@@ -236,8 +201,7 @@ class LmsMobileTestScenario(MultiItemTestBase):
         return True
 
     async def _action_badge_challenge(self) -> bool:
-        """GNB Certification 메뉴 → Badge 탭 → 도전하기 → 도전취소 (PC 웹 방식)."""
-        # GNB Certification 이동
+        """GNB Certification → Badge 탭 → 도전하기 → 도전취소."""
         cert_nav = ChecklistItem(
             service="lms_mobile",
             check_item="cert-nav",
@@ -250,14 +214,12 @@ class LmsMobileTestScenario(MultiItemTestBase):
             structural_selectors=[
                 "a[href*='certification']",
                 "nav a:has-text('Certification')",
-                "[class*='gnb'] a:has-text('Certification')",
             ],
         )
         await self._click_with_priority(cert_nav)
         await self.mysuni_page.wait_for_page_loaded()
         await self.page.wait_for_timeout(1000)
 
-        # Badge 탭 클릭
         badge_tab = ChecklistItem(
             service="lms_mobile",
             check_item="badge-tab",
@@ -265,18 +227,16 @@ class LmsMobileTestScenario(MultiItemTestBase):
             expected_result="",
             mode="playwright",
             action_type="click",
-            data_testids=["tab-badge", "badge-tab"],
+            data_testids=["tab-badge"],
             semantic_candidates=["Badge", "배지"],
             structural_selectors=[
                 "button[role='tab']:has-text('Badge')",
-                "button[role='tab']:has-text('배지')",
                 "[class*='tab']:has-text('Badge')",
             ],
         )
         await self._click_with_priority(badge_tab)
         await self.page.wait_for_timeout(1000)
 
-        # 도전하기 버튼 클릭
         challenge_ok = False
         contexts = await self._iter_contexts()
         for _, ctx in contexts:
@@ -293,7 +253,6 @@ class LmsMobileTestScenario(MultiItemTestBase):
             if challenge_ok:
                 break
 
-        # 모달 닫기
         for close_text in ["닫기", "확인", "취소"]:
             try:
                 close_btn = self.page.locator(f"button:has-text('{close_text}')").last
@@ -304,7 +263,6 @@ class LmsMobileTestScenario(MultiItemTestBase):
             except Exception:
                 pass
 
-        # 도전취소
         cancel_ok = False
         for _, ctx in contexts:
             try:
@@ -313,11 +271,15 @@ class LmsMobileTestScenario(MultiItemTestBase):
                     await loc.click()
                     await self.mysuni_page.wait_for_page_loaded()
                     await self.page.wait_for_timeout(1000)
-                    cancel_btn = self.page.locator("button:has-text('도전취소'), button:has-text('도전 취소')").first
+                    cancel_btn = self.page.locator(
+                        "button:has-text('도전취소'), button:has-text('도전 취소')"
+                    ).first
                     if await cancel_btn.count() > 0 and await cancel_btn.is_visible():
                         await cancel_btn.click()
                         await self.page.wait_for_timeout(500)
-                        confirm_btn = self.page.locator("button:has-text('확인'), button:has-text('예')").first
+                        confirm_btn = self.page.locator(
+                            "button:has-text('확인'), button:has-text('예')"
+                        ).first
                         if await confirm_btn.count() > 0 and await confirm_btn.is_visible():
                             await confirm_btn.click()
                         cancel_ok = True
@@ -328,8 +290,7 @@ class LmsMobileTestScenario(MultiItemTestBase):
         return challenge_ok or cancel_ok
 
     async def _action_community_post(self) -> bool:
-        """커뮤니티 게시글 작성 후 삭제 (PC 웹 GNB 방식)."""
-        # GNB Community 이동
+        """커뮤니티 게시글 작성 후 삭제."""
         comm_nav = ChecklistItem(
             service="lms_mobile",
             check_item="community-nav",
@@ -342,14 +303,12 @@ class LmsMobileTestScenario(MultiItemTestBase):
             structural_selectors=[
                 "a[href*='community']",
                 "nav a:has-text('Community')",
-                "[class*='gnb'] a:has-text('커뮤니티')",
             ],
         )
         await self._click_with_priority(comm_nav)
         await self.mysuni_page.wait_for_page_loaded()
         await self.page.wait_for_timeout(1000)
 
-        # 좌측 커뮤니티 목록 첫 번째 게시판 진입
         board_item = ChecklistItem(
             service="lms_mobile",
             check_item="community-board",
@@ -367,8 +326,6 @@ class LmsMobileTestScenario(MultiItemTestBase):
         )
         await self._click_with_priority(board_item)
         await self.page.wait_for_timeout(1000)
-
-        # 페이지 상단 스크롤 후 글쓰기 클릭
         await self.page.evaluate("window.scrollTo(0, 0)")
         await self.page.wait_for_timeout(300)
 
@@ -459,22 +416,20 @@ class LmsMobileTestScenario(MultiItemTestBase):
         return True
 
     async def _action_easy_login_setup(self) -> bool:
-        """간편로그인 설정 — MyProfile 페이지에서 간편로그인 설정 버튼 탐색 (PC 웹)."""
+        """간편로그인 설정 — MyProfile 페이지 노출 (PC 웹 대체)."""
         await self.mysuni_page.goto_page("/suni-main/my-training/my-page/MyProfile")
         await self.mysuni_page.wait_for_page_loaded()
         await self.page.wait_for_timeout(1500)
 
         item = next(i for i in self.CHECKLIST if i.check_item == "간편로그인 설정")
-        clicked = await self._click_with_priority(item)
-        if clicked:
+        if await self._click_with_priority(item):
             await self.page.wait_for_timeout(1500)
             return True
-        print("⚠️ 간편로그인 설정 버튼 미발견 (PC 웹에서는 MyProfile 페이지 노출로 대체)")
+        print("⚠️ 간편로그인 설정 버튼 미발견")
         return False
 
     async def _action_logout(self) -> bool:
-        """PC 웹 프로필 드롭다운 → 로그아웃."""
-        # 프로필 아이콘 클릭
+        """프로필 드롭다운 → 로그아웃."""
         profile_item = ChecklistItem(
             service="lms_mobile",
             check_item="profile-menu",
@@ -495,7 +450,6 @@ class LmsMobileTestScenario(MultiItemTestBase):
         await self._click_with_priority(profile_item)
         await self.page.wait_for_timeout(1000)
 
-        # 드롭다운 내 로그아웃 탐색
         contexts = await self._iter_contexts()
         for _, ctx in contexts:
             for selector in [
@@ -515,7 +469,6 @@ class LmsMobileTestScenario(MultiItemTestBase):
                 except Exception:
                     continue
 
-        # 폴백: 체크리스트 셀렉터
         item = next(i for i in self.CHECKLIST if i.check_item == "로그아웃")
         if await self._click_with_priority(item):
             await self.mysuni_page.wait_for_page_loaded()
@@ -523,12 +476,10 @@ class LmsMobileTestScenario(MultiItemTestBase):
         return False
 
     async def _action_easy_login(self) -> bool:
-        """간편 로그인 — 로그아웃 후 로그인 페이지에서 간편 로그인 버튼 탐색 (PC 웹)."""
-        # 로그아웃 후 로그인 페이지로 이동됐을 것을 가정
+        """로그인 페이지에서 간편 로그인 버튼 탐색."""
         item = next(i for i in self.CHECKLIST if i.check_item == "간편로그인")
-        clicked = await self._click_with_priority(item)
-        if clicked:
+        if await self._click_with_priority(item):
             await self.page.wait_for_timeout(1500)
             return True
-        print("⚠️ 간편로그인 버튼 미발견 (PC 웹 로그인 페이지에서 간편 로그인 UI 노출 확인으로 대체)")
+        print("⚠️ 간편로그인 버튼 미발견")
         return False
